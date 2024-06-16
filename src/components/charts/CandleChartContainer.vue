@@ -16,7 +16,7 @@
           </v-select>
 
           <b-button
-            title="Refresh chart"
+            title="刷新图表"
             class="ms-2"
             :disabled="!!!botStore.activeBot.plotPair || isLoadingDataset"
             size="sm"
@@ -24,29 +24,30 @@
           >
             <i-mdi-refresh />
           </b-button>
+
           <b-spinner v-if="isLoadingDataset" small class="ms-2" label="Spinning" />
           <div class="d-flex flex-column">
             <div class="d-flex flex-row flex-wrap">
-              <small v-if="dataset" class="ms-2 text-nowrap" title="Long entry signals"
-                >Long entries: {{ dataset.enter_long_signals || dataset.buy_signals }}</small
+              <small v-if="dataset" class="ms-2 text-nowrap" title="多单开仓信号"
+                >多单开仓: {{ dataset.enter_long_signals || dataset.buy_signals }}</small
               >
-              <small v-if="dataset" class="ms-2 text-nowrap" title="Long exit signals"
-                >Long exit: {{ dataset.exit_long_signals || dataset.sell_signals }}</small
+              <small v-if="dataset" class="ms-2 text-nowrap" title="多单平仓信号"
+                >多单平仓: {{ dataset.exit_long_signals || dataset.sell_signals }}</small
               >
             </div>
             <div class="d-flex flex-row flex-wrap">
               <small v-if="dataset && dataset.enter_short_signals" class="ms-2 text-nowrap"
-                >Short entries: {{ dataset.enter_short_signals }}</small
+                >空单开仓: {{ dataset.enter_short_signals }}</small
               >
               <small v-if="dataset && dataset.exit_short_signals" class="ms-2 text-nowrap"
-                >Short exits: {{ dataset.exit_short_signals }}</small
+                >空单平仓: {{ dataset.exit_short_signals }}</small
               >
             </div>
           </div>
         </div>
         <div class="ms-auto d-flex align-items-center w-auto">
           <b-form-checkbox v-model="settingsStore.useHeikinAshiCandles"
-            ><small class="text-nowrap">Heikin Ashi</small></b-form-checkbox
+            ><small class="text-nowrap">平均K线（Heikin Ashi）</small></b-form-checkbox
           >
 
           <div class="ms-2">
@@ -54,7 +55,7 @@
           </div>
 
           <div class="ms-2 me-0 me-md-1">
-            <b-button size="sm" title="Plot configurator" @click="showConfigurator">
+            <b-button size="sm" title="图表配置" @click="showConfigurator">
               <i-mdi-cog width="12" height="12" />
             </b-button>
           </div>
@@ -96,7 +97,7 @@
       v-if="plotConfigModal"
       id="plotConfiguratorModal"
       v-model="showPlotConfigModal"
-      title="Plot Configurator"
+      title="图表配置"
       ok-only
       hide-backdrop
     >

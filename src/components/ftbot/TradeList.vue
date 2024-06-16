@@ -86,7 +86,7 @@
       position-increase
     />
 
-    <b-modal v-model="removeTradeVisible" title="Exit trade" @ok="forceExitExecuter">
+    <b-modal v-model="removeTradeVisible" title="退出交易" @ok="forceExitExecuter">
       {{ confirmExitText }}
     </b-modal>
   </div>
@@ -114,7 +114,7 @@ const props = defineProps({
   activeTrades: { default: false, type: Boolean },
   showFilter: { default: false, type: Boolean },
   multiBotView: { default: false, type: Boolean },
-  emptyText: { default: 'No Trades to show.', type: String },
+  emptyText: { default: '没有订单显示.', type: String },
 });
 const botStore = useBotStore();
 const router = useRouter();
@@ -131,10 +131,10 @@ const confirmExitText = ref('');
 const confirmExitValue = ref<ModalReasons | null>(null);
 
 const increasePosition = ref({ visible: false, trade: {} as Trade });
-const openFields: TableField[] = [{ key: 'actions' }];
+const openFields: TableField[] = [{ key: 'actions', label: '操作' }];
 const closedFields: TableField[] = [
-  { key: 'close_timestamp', label: 'Close date' },
-  { key: 'exit_reason', label: 'Close Reason' },
+  { key: 'close_timestamp', label: '平仓时间' },
+  { key: 'exit_reason', label: '平仓原因' },
 ];
 function formatPriceWithDecimals(price) {
   return formatPrice(price, botStore.activeBot.stakeCurrencyDecimals);
@@ -149,26 +149,26 @@ const tableFields = ref<any[]>([]);
 
 onMounted(() => {
   tableFields.value = [
-    { key: 'trade_id', label: 'ID' },
-    { key: 'pair', label: 'Pair' },
-    { key: 'amount', label: 'Amount' },
+    { key: 'trade_id', label: '订单编号' },
+    { key: 'pair', label: '币种' },
+    { key: 'amount', label: '数量' },
     {
       key: 'stake_amount',
-      label: 'Stake amount',
+      label: '总金额',
     },
     {
       key: 'open_rate',
-      label: 'Open rate',
+      label: '开仓均价',
       formatter: (value: unknown) => formatPrice(value as number),
     },
     {
       key: props.activeTrades ? 'current_rate' : 'close_rate',
-      label: props.activeTrades ? 'Current rate' : 'Close rate',
+      label: props.activeTrades ? '当前价格' : '平仓价格',
       formatter: (value: unknown) => formatPrice(value as number),
     },
     {
       key: 'profit',
-      label: props.activeTrades ? 'Current profit %' : 'Profit %',
+      label: props.activeTrades ? '当前盈亏%' : '盈亏%',
       formatter: (value: unknown, key?: string, item?: unknown) => {
         if (!item) {
           return '';
@@ -178,11 +178,11 @@ onMounted(() => {
         return `${percent} ${`(${formatPriceWithDecimals(typedItem.profit_abs)})`}`;
       },
     },
-    { key: 'open_timestamp', label: 'Open date' },
+    { key: 'open_timestamp', label: '开单时间' },
     ...(props.activeTrades ? openFields : closedFields),
   ];
   if (props.multiBotView) {
-    tableFields.value.unshift({ key: 'botName', label: 'Bot' });
+    tableFields.value.unshift({ key: 'botName', label: '机器人' });
   }
 });
 
@@ -190,7 +190,7 @@ const feOrderType = ref<string | undefined>(undefined);
 function forceExitHandler(item: Trade, ordertype: string | undefined = undefined) {
   feTrade.value = item;
   confirmExitValue.value = ModalReasons.forceExit;
-  confirmExitText.value = `Really exit trade ${item.trade_id} (Pair ${item.pair}) using ${ordertype} Order?`;
+  confirmExitText.value = `确认退出订单编号#${item.trade_id} (币种 ${item.pair}) 以 ${ordertype} 订单?`;
   feOrderType.value = ordertype;
   if (settingsStore.confirmDialog === true) {
     removeTradeVisible.value = true;
@@ -233,7 +233,7 @@ function forceExitExecuter() {
 }
 
 function removeTradeHandler(item: Trade) {
-  confirmExitText.value = `Really delete trade ${item.trade_id} (Pair ${item.pair})?`;
+  confirmExitText.value = `确定删除编号为#${item.trade_id} (币种 ${item.pair})的订单么?`;
   confirmExitValue.value = ModalReasons.removeTrade;
   feTrade.value = item;
   removeTradeVisible.value = true;
@@ -245,7 +245,7 @@ function forceExitPartialHandler(item: Trade) {
 }
 
 function cancelOpenOrderHandler(item: Trade) {
-  confirmExitText.value = `Cancel open order for trade ${item.trade_id} (Pair ${item.pair})?`;
+  confirmExitText.value = `取消订单编号为#${item.trade_id} (币种 ${item.pair})的挂单?`;
   feTrade.value = item;
   confirmExitValue.value = ModalReasons.cancelOpenOrder;
   removeTradeVisible.value = true;

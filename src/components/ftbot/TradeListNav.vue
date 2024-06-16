@@ -52,7 +52,7 @@
           </ul>
         </b-collapse>
       </b-list-group-item>
-      <b-list-group-item v-if="trades.length === 0">No trades to show...</b-list-group-item>
+      <b-list-group-item v-if="trades.length === 0">没有订单显示...</b-list-group-item>
     </b-list-group>
   </div>
 </template>

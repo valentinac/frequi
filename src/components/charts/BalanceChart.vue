@@ -51,7 +51,7 @@ const settingsStore = useSettingsStore();
 const balanceChartOptions = computed((): EChartsOption => {
   return {
     title: {
-      text: 'Balance',
+      text: '可用余额',
       show: props.showTitle,
     },
     center: ['50%', '50%'],

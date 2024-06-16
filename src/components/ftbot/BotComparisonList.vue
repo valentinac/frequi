@@ -90,19 +90,19 @@ const allToggled = computed<boolean>({
 });
 
 const tableFields: TableField[] = [
-  { key: 'botName', label: 'Bot' },
-  { key: 'trades', label: 'Trades' },
-  { key: 'profitOpen', label: 'Open Profit' },
-  { key: 'profitClosed', label: 'Closed Profit' },
-  { key: 'balance', label: 'Balance' },
-  { key: 'winVsLoss', label: 'W/L' },
+  { key: 'botName', label: '机器人名字' },
+  { key: 'trades', label: '交易订单' },
+  { key: 'profitOpen', label: '未结算盈亏' },
+  { key: 'profitClosed', label: '已结算盈亏' },
+  { key: 'balance', label: '可用余额' },
+  { key: 'winVsLoss', label: '止盈/止损' },
 ];
 
 const tableItems = computed<TableItem[]>(() => {
   const val: ComparisonTableItems[] = [];
   const summary: ComparisonTableItems = {
     botId: undefined,
-    botName: 'Summary',
+    botName: '概要',
     profitClosed: 0,
     profitClosedRatio: undefined,
     profitOpen: 0,

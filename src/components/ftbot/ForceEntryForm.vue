@@ -3,7 +3,7 @@
     id="forceentry-modal"
     ref="modal"
     v-model="model"
-    :title="positionIncrease ? `Increasing position for ${pair}` : 'Force entering a trade'"
+    :title="positionIncrease ? `对 ${pair} 加仓` : '开仓'"
     @show="resetForm"
     @hidden="resetForm"
     @ok="handleEntry"
@@ -11,7 +11,7 @@
     <form ref="form" @submit.stop.prevent="handleSubmit">
       <b-form-group
         v-if="botStore.activeBot.botApiVersion >= 2.13 && botStore.activeBot.shortAllowed"
-        label="Order direction (Long or Short)"
+        label="开仓方向 (多单/空单)"
         label-for="order-direction"
         invalid-feedback="Order direction must be set"
         :state="orderSide !== undefined"
@@ -28,7 +28,7 @@
         ></b-form-radio-group>
       </b-form-group>
       <b-form-group
-        label="Pair"
+        label="币种"
         label-for="pair-input"
         invalid-feedback="Pair is required"
         :state="selectedPair !== undefined"
@@ -43,7 +43,7 @@
         ></b-form-input>
       </b-form-group>
       <b-form-group
-        label="*Price [optional]"
+        label="* 价格 [可不填]"
         label-for="price-input"
         invalid-feedback="Price must be empty or a positive number"
         :state="!price || price > 0"
@@ -57,7 +57,7 @@
         ></b-form-input>
       </b-form-group>
       <b-form-group
-        :label="`*Stake-amount in ${botStore.activeBot.stakeCurrency} [optional]`"
+        :label="`* 订单总金额 ${botStore.activeBot.stakeCurrency} [可不填]`"
         label-for="stake-input"
         invalid-feedback="Stake-amount must be empty or a positive number"
         :state="!stakeAmount || stakeAmount > 0"
@@ -72,7 +72,7 @@
       </b-form-group>
       <b-form-group
         v-if="botStore.activeBot.botApiVersion > 2.16 && botStore.activeBot.shortAllowed"
-        :label="`*Leverage to apply [optional]`"
+        :label="`* 杠杆倍数 [可不填]`"
         label-for="leverage-input"
         invalid-feedback="Leverage must be empty or a positive number"
         :state="!leverage || leverage > 0"
@@ -86,7 +86,7 @@
         ></b-form-input>
       </b-form-group>
       <b-form-group
-        label="OrderType"
+        label="订单类型"
         label-for="ordertype-input"
         invalid-feedback="OrderType"
         :state="true"
@@ -104,7 +104,7 @@
       </b-form-group>
       <b-form-group
         v-if="botStore.activeBot.botApiVersion > 1.16"
-        label="*Custom entry tag Optional]"
+        label="* 自定义订单标签 [可不填]"
         label-for="enterTag-input"
       >
         <b-form-input

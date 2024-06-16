@@ -1,12 +1,12 @@
 <template>
   <div>
     <div class="mb-2">
-      <label class="me-auto h3">Balance</label>
+      <label class="me-auto h3">钱包余额</label>
       <div class="float-end d-flex flex-row">
         <b-button
           v-if="canUseBotBalance"
           size="sm"
-          :title="!showBotOnly ? 'Showing Account balance' : 'Showing Bot balance'"
+          :title="!showBotOnly ? '显示账户余额' : '显示机器人余额'"
           @click="showBotOnly = !showBotOnly"
         >
           <i-mdi-robot v-if="showBotOnly" />
@@ -14,7 +14,7 @@
         </b-button>
         <b-button
           size="sm"
-          :title="!hideSmallBalances ? 'Hide small balances' : 'Show all balances'"
+          :title="!hideSmallBalances ? '隐藏微小余额' : '显示所有余额'"
           @click="hideSmallBalances = !hideSmallBalances"
         >
           <i-mdi-eye-off v-if="hideSmallBalances" />
@@ -33,7 +33,7 @@
       </p>
       <b-table class="table-sm" :items="balanceCurrencies" :fields="tableFields">
         <template #custom-foot>
-          <td class="pt-1"><strong>Total</strong></td>
+          <td class="pt-1"><strong>总计</strong></td>
           <td class="pt-1">
             <span
               class="font-italic"
@@ -109,15 +109,15 @@ const chartValues = computed<BalanceValues[]>(() => {
 
 const tableFields = computed<TableField[]>(() => {
   return [
-    { key: 'currency', label: 'Currency' },
+    { key: 'currency', label: '币种' },
     {
       key: showBotOnly.value && canUseBotBalance.value ? 'bot_owned' : 'free',
-      label: 'Available',
+      label: '可用',
       formatter: formatCurrency,
     },
     {
       key: showBotOnly.value && canUseBotBalance.value ? 'est_stake_bot' : 'est_stake',
-      label: `in ${botStore.activeBot.balance.stake}`,
+      label: `兑换${botStore.activeBot.balance.stake}`,
       formatter: formatCurrency,
     },
   ];

@@ -3,13 +3,13 @@
     <b-form-checkbox
       v-model="autoRefreshLoc"
       class="float-end my-auto mt-1"
-      title="AutoRefresh"
+      title="自动刷新"
     ></b-form-checkbox>
     <b-button
       class="m-1"
       variant="secondary"
       size="sm"
-      title="Auto Refresh All bots"
+      title="自动刷新所有机器人"
       @click="botStore.allRefreshFull"
     >
       <i-mdi-refresh />

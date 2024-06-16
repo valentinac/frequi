@@ -3,19 +3,19 @@
     <b-modal
       id="forceexit-modal"
       v-model="model"
-      title="Force exiting a trade"
+      title="对订单进行减仓"
       @show="resetForm"
       @hidden="resetForm"
       @ok="handleEntry"
     >
       <form ref="form" @submit.stop.prevent="handleSubmit">
         <p>
-          <span>Exiting Trade #{{ trade.trade_id }} {{ trade.pair }}.</span>
+          <span>进行中订单编号 #{{ trade.trade_id }} {{ trade.pair }}.</span>
           <br />
-          <span>Currently owning {{ trade.amount }} {{ trade.base_currency }}</span>
+          <span>当前持仓 {{ trade.amount }} {{ trade.base_currency }}</span>
         </p>
         <b-form-group
-          :label="`*Amount in ${trade.base_currency} [optional]`"
+          :label="`* 卖出总额 ${trade.base_currency} [可不填]`"
           label-for="stake-input"
           invalid-feedback="Amount must be empty or a positive number"
           :state="amount !== undefined && amount > 0"
@@ -37,7 +37,7 @@
         </b-form-group>
 
         <b-form-group
-          label="*OrderType"
+          label="* 订单类型"
           label-for="ordertype-input"
           invalid-feedback="OrderType"
           :state="ordertype !== undefined"
@@ -45,7 +45,7 @@
           <b-form-select
             v-model="ordertype"
             class="ms-2"
-            :options="['market', 'limit']"
+            :options="['市价单', '限价单']"
             style="min-width: 7em"
             size="sm"
           >

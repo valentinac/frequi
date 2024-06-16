@@ -13,14 +13,14 @@
       >
         <div
           v-if="botStore.botStores[bot.botId].isBotLoggedIn"
-          :title="botStore.botStores[bot.botId].isBotOnline ? 'Online' : 'Offline'"
+          :title="botStore.botStores[bot.botId].isBotOnline ? '在线' : '离线'"
         >
           <i-mdi-circle
             class="ms-2 me-1 align-middle"
             :class="botStore.botStores[bot.botId].isBotOnline ? 'online' : 'offline'"
           />
         </div>
-        <div v-else title="Login info expired, please login again.">
+        <div v-else title="登录信息已失效, 请重新登录.">
           <i-mdi-cancel class="offline" />
         </div>
       </b-form-checkbox>
@@ -29,7 +29,7 @@
           v-if="botStore.botStores[bot.botId].isBotLoggedIn"
           class="ms-1"
           size="sm"
-          title="Edit bot"
+          title="编辑机器人"
           @click="$emit('edit')"
         >
           <i-mdi-pencil />

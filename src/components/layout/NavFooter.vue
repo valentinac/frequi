@@ -9,7 +9,7 @@
         to="/open_trades"
       >
         <i-mdi-folder-open height="24" width="24" />
-        Trades
+        订单
       </router-link>
       <router-link
         v-if="!botStore.canRunBacktest"
@@ -17,7 +17,7 @@
         to="/trade_history"
       >
         <i-mdi-folder-lock height="24" width="24" />
-        History
+        历史
       </router-link>
       <router-link
         v-if="!botStore.canRunBacktest"
@@ -25,7 +25,7 @@
         to="/pairlist"
       >
         <i-mdi-view-list height="24" width="24" />
-        Pairlist
+        币种列表
       </router-link>
       <router-link
         v-if="!botStore.canRunBacktest"
@@ -33,7 +33,7 @@
         to="/balance"
       >
         <i-mdi-bank height="24" width="24" />
-        Balance
+        可用余额
       </router-link>
       <router-link
         v-if="!botStore.canRunBacktest"
@@ -41,7 +41,7 @@
         to="/dashboard"
       >
         <i-mdi-view-dashboard-outline height="24" width="24" />
-        Dashboard
+        控制面板
       </router-link>
     </div>
   </footer>

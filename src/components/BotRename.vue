@@ -4,17 +4,17 @@
       v-model="newName"
       size="sm"
       class="w-100"
-      placeholder="Bot name"
+      placeholder="机器人名"
       style="border-style: solid; border-width: 1px"
       autofocus
     />
 
     <div class="d-flex ms-2 no-min-w">
-      <b-button type="submit" size="sm" title="Save" class="no-min-w">
+      <b-button type="submit" size="sm" title="保存" class="no-min-w">
         <i-mdi-check />
       </b-button>
 
-      <b-button class="ms-1 no-min-w" size="sm" title="Cancel" @click="$emit('cancelled')">
+      <b-button class="ms-1 no-min-w" size="sm" title="取消" @click="$emit('cancelled')">
         <i-mdi-close />
       </b-button>
     </div>

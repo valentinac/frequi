@@ -7,7 +7,7 @@
     <div class="d-flex flex-column text-start ms-0 me-2 gap-2">
       <div class="d-flex flex-column flex-xl-row">
         <div class="px-0 px-xl-0 pe-xl-1 flex-fill">
-          <b-card header="Strategy settings">
+          <b-card header="策略配置">
             <b-table
               small
               borderless
@@ -18,7 +18,7 @@
           </b-card>
         </div>
         <div class="px-0 px-xl-0 pt-2 pt-xl-0 ps-xl-1 flex-fill">
-          <b-card header="Metrics">
+          <b-card header="指标">
             <b-table small borderless :items="backtestResultStats" :fields="backtestResultFields">
             </b-table>
           </b-card>

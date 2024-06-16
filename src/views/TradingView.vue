@@ -24,35 +24,35 @@
         :h="gridLayoutMultiPane.h"
         drag-allow-from=".card-header"
       >
-        <DraggableContainer header="Multi Pane">
+        <DraggableContainer header="综合面板">
           <div class="mt-1 d-flex justify-content-center">
             <BotControls class="mt-1 mb-2" />
           </div>
           <b-tabs content-class="mt-3" class="mt-1">
-            <b-tab title="Pairs combined" active>
+            <b-tab title="币种列表" active>
               <PairSummary
                 :pairlist="botStore.activeBot.whitelist"
                 :current-locks="botStore.activeBot.activeLocks"
                 :trades="botStore.activeBot.openTrades"
               />
             </b-tab>
-            <b-tab title="General">
+            <b-tab title="概况">
               <BotStatus />
             </b-tab>
-            <b-tab title="Performance" lazy>
+            <b-tab title="运行表现" lazy>
               <BotPerformance />
             </b-tab>
-            <b-tab title="Balance" lazy>
+            <b-tab title="钱包余额" lazy>
               <BotBalance />
             </b-tab>
-            <b-tab title="Time Breakdown" lazy>
+            <b-tab title="周期统计" lazy>
               <PeriodBreakdown />
             </b-tab>
 
-            <b-tab title="Pairlist" lazy>
+            <b-tab title="币种配置" lazy>
               <PairListLive />
             </b-tab>
-            <b-tab title="Pair Locks" lazy>
+            <b-tab title="锁定的币种" lazy>
               <PairLockList />
             </b-tab>
           </b-tabs>
@@ -68,13 +68,13 @@
         :h="gridLayoutOpenTrades.h"
         drag-allow-from=".card-header"
       >
-        <DraggableContainer header="Open Trades">
+        <DraggableContainer header="进行中交易">
           <TradeList
             class="open-trades"
             :trades="botStore.activeBot.openTrades"
-            title="Open trades"
+            title="进行中交易"
             :active-trades="true"
-            empty-text="Currently no open trades."
+            empty-text="当前没有任何交易."
           />
         </DraggableContainer>
       </grid-item>
@@ -88,13 +88,13 @@
         :h="gridLayoutTradeHistory.h"
         drag-allow-from=".card-header"
       >
-        <DraggableContainer header="Closed Trades">
+        <DraggableContainer header="已完成交易">
           <trade-list
             class="trade-history"
             :trades="botStore.activeBot.closedTrades"
-            title="Trade history"
+            title="订单历史"
             :show-filter="true"
-            empty-text="No closed trades so far."
+            empty-text="至今没有已完成的交易."
           />
         </DraggableContainer>
       </grid-item>
@@ -113,7 +113,7 @@
         :min-h="4"
         drag-allow-from=".card-header"
       >
-        <DraggableContainer header="Trade Detail">
+        <DraggableContainer header="交易详情">
           <TradeDetail
             :trade="botStore.activeBot.tradeDetail"
             :stake-currency="botStore.activeBot.stakeCurrency"
@@ -131,7 +131,7 @@
         :min-h="6"
         drag-allow-from=".card-header"
       >
-        <DraggableContainer header="Chart">
+        <DraggableContainer header="图表">
           <CandleChartContainer
             :available-pairs="botStore.activeBot.whitelist"
             :historic-view="!!false"

@@ -6,7 +6,7 @@
         role="button"
         @click="visible = !visible"
       >
-        <span class="fw-bold fd-italic">Blacklist</span>
+        <span class="fw-bold fd-italic">黑名单</span>
         <i-mdi-chevron-down
           v-if="!visible"
           :class="!visible ? 'visible' : 'invisible'"

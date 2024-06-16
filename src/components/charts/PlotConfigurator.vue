@@ -1,11 +1,11 @@
 <template>
   <div v-if="columns">
-    <b-form-group label="Plot config name" label-for="idPlotConfigName">
+    <b-form-group label="绘图配置名称" label-for="idPlotConfigName">
       <plot-config-select allow-edit></plot-config-select>
     </b-form-group>
     <div class="col-mb-3">
       <hr />
-      <b-form-group label="Target Plot" label-for="FieldSel">
+      <b-form-group label="绘图目标" label-for="FieldSel">
         <edit-value
           v-model="selSubPlot"
           :allow-edit="!isMainPlot"
@@ -23,7 +23,7 @@
     </div>
     <hr />
     <div>
-      <b-form-group label="Indicators in this plot" label-for="selectedIndicators">
+      <b-form-group label="图表中包含的指标" label-for="selectedIndicators">
         <b-form-select
           id="selectedIndicators"
           v-model="selIndicatorName"
@@ -37,26 +37,24 @@
     <div class="d-flex flex-row mt-1">
       <b-button
         variant="secondary"
-        title="Remove indicator to plot"
+        title="从图表中移除指标"
         size="sm"
         :disabled="!selIndicatorName"
         class="col"
         @click="removeIndicator"
       >
-        Remove indicator
+        移除指标
       </b-button>
       <b-button
         variant="primary"
-        title="Add indicator to plot"
+        title="向图表中添加新指标"
         size="sm"
         class="ms-1 col"
         :disabled="addNewIndicator"
         @click="
           addNewIndicator = !addNewIndicator;
           selIndicatorName = '';
-        "
-      >
-        Add new indicator
+        ">添加新指标
       </b-button>
     </div>
 
@@ -64,7 +62,7 @@
       v-if="addNewIndicator"
       :columns="columns"
       class="mt-1"
-      label="Select indicator to add"
+      label="选择指标添加到图表"
       @indicator-selected="addNewIndicatorSelected"
     />
 
@@ -82,9 +80,9 @@
         variant="secondary"
         size="sm"
         :disabled="addNewIndicator"
-        title="Reset to last saved configuration"
+        title="重置成最后一次保存的配置"
         @click="loadPlotConfig"
-        >Reset</b-button
+        >重置</b-button
       >
 
       <!--
@@ -109,7 +107,7 @@
         size="sm"
         @click="loadPlotConfigFromStrategy"
       >
-        From strategy
+        从策略中
       </b-button>
       <b-button
         id="showButton"
@@ -117,9 +115,9 @@
         variant="secondary"
         size="sm"
         :disabled="addNewIndicator"
-        title="Show configuration for easy transfer to a strategy"
+        title="显示配置以便于转移到策略"
         @click="showConfig = !showConfig"
-        >{{ showConfig ? 'Hide' : 'Show' }}</b-button
+        >{{ showConfig ? '隐藏' : '显示' }}</b-button
       >
 
       <b-button
@@ -128,9 +126,8 @@
         size="sm"
         data-toggle="tooltip"
         :disabled="addNewIndicator"
-        title="Save configuration"
-        @click="savePlotConfig"
-        >Save</b-button
+        title="保存配置"
+        @click="savePlotConfig">保存</b-button
       >
     </div>
     <b-button
@@ -138,9 +135,9 @@
       class="ms-1 mt-1"
       variant="secondary"
       size="sm"
-      title="Load configuration from text box below"
+      title="从下面的文本框加载配置"
       @click="loadConfigFromString"
-      >Load from String</b-button
+      >从字符串加载</b-button
     >
     <div v-if="showConfig" class="col-mb-5 ms-1 mt-2">
       <b-form-textarea
@@ -207,7 +204,7 @@ const usedColumns = computed((): { html: string; value: string }[] => {
   return usedCols.map((col) => ({
     value: col,
     html: !props.columns.includes(col)
-      ? `<span title="Column not available">${col} <-- not available in this chart</span>`
+      ? `<span title="列名不可用">${col} <-- not available in this chart</span>`
       : col,
   }));
 });
@@ -318,7 +315,7 @@ function loadConfigFromString() {
 
 async function loadPlotConfigFromStrategy() {
   if (botStore.activeBot.isWebserverMode && !botStore.activeBot.strategy.strategy) {
-    showAlert(`No strategy selected, can't load plot config.`);
+    showAlert(`没有选择策略，无法加载图表配置.`);
     return;
   }
   try {
@@ -328,7 +325,7 @@ async function loadPlotConfigFromStrategy() {
     }
   } catch (data) {
     //
-    showAlert('Failed to load Plot configuration from Strategy.');
+    showAlert('未能从策略加载图表配置.');
   }
 }
 

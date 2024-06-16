@@ -23,32 +23,32 @@ function formatTextLen(text: string, len: number) {
 const performanceTable = computed<TableField[]>(() => {
   const textLength = 17;
   const initialCol = {
-    [PerformanceOptions.performance]: { key: 'pair', label: 'Pair' },
+    [PerformanceOptions.performance]: { key: 'pair', label: '币种' },
     [PerformanceOptions.entryStats]: {
       key: 'enter_tag',
-      label: 'Enter tag',
+      label: '开仓标签',
       formatter: (v: unknown) => formatTextLen(v as string, textLength),
     },
     [PerformanceOptions.exitStats]: {
       key: 'exit_reason',
-      label: 'Exit Reason',
+      label: '平仓原因',
       formatter: (v: unknown) => formatTextLen(v as string, textLength),
     },
     [PerformanceOptions.mixTagStats]: {
       key: 'mix_tag',
-      label: 'Mix Tag',
+      label: '混合标签',
       formatter: (v: unknown) => formatTextLen(v as string, textLength),
     },
   };
   return [
     initialCol[selectedOption.value],
-    { key: 'profit', label: 'Profit %' },
+    { key: 'profit', label: '利润率%' },
     {
       key: 'profit_abs',
-      label: `Profit ${botStore.activeBot.botState?.stake_currency}`,
+      label: `利润${botStore.activeBot.botState?.stake_currency}`,
       formatter: (v: unknown) => formatPrice(v as number, 5),
     },
-    { key: 'count', label: 'Count' },
+    { key: 'count', label: '总数' },
   ];
 });
 
@@ -71,10 +71,10 @@ const performanceData = computed(() => {
 const hasAdvancedStats = computed(() => botStore.activeBot.botApiVersion >= 2.34);
 
 const options = [
-  { value: PerformanceOptions.performance, text: 'Performance' },
-  { value: PerformanceOptions.entryStats, text: 'Entries' },
-  { value: PerformanceOptions.exitStats, text: 'Exits' },
-  { value: PerformanceOptions.mixTagStats, text: 'Mix Tag' },
+  { value: PerformanceOptions.performance, text: '运行表现' },
+  { value: PerformanceOptions.entryStats, text: '开仓' },
+  { value: PerformanceOptions.exitStats, text: '平仓' },
+  { value: PerformanceOptions.mixTagStats, text: '混合标签' },
 ];
 
 function refreshSummary() {
@@ -99,7 +99,7 @@ onMounted(() => {
 <template>
   <div>
     <div class="mb-2">
-      <h3 class="me-auto d-inline">Performance</h3>
+      <h3 class="me-auto d-inline">运行表现</h3>
       <b-button class="float-end" size="sm" @click="refreshSummary">
         <i-mdi-refresh />
       </b-button>

@@ -1,17 +1,17 @@
 <template>
   <div>
     <form ref="formRef" novalidate @submit.stop.prevent="handleSubmit" @reset="handleReset">
-      <b-form-group label="Bot Name" label-for="name-input">
+      <b-form-group label="机器人名" label-for="name-input">
         <b-form-input
           id="name-input"
           v-model="auth.botName"
-          placeholder="Bot Name"
+          placeholder="机器人名"
           @keydown.enter="handleOk"
         ></b-form-input>
       </b-form-group>
       <b-form-group
         :state="urlState"
-        label="API Url"
+        label="API地址"
         label-for="url-input"
         invalid-feedback="API Url required"
       >
@@ -29,28 +29,28 @@
           :model-value="true"
           variant="warning"
         >
-          This URL is already in use by another bot.
+          此URL已经被其他机器人使用.
         </b-alert>
       </b-form-group>
       <b-form-group
         :state="nameState"
-        label="Username"
+        label="用户名"
         label-for="username-input"
-        invalid-feedback="Name and Password are required."
+        invalid-feedback="用户名密码不能为空."
       >
         <b-form-input
           id="username-input"
           v-model="auth.username"
           required
-          placeholder="Freqtrader"
+          placeholder="FaiTrader"
           :state="nameState"
           @keydown.enter="handleOk"
         ></b-form-input>
       </b-form-group>
       <b-form-group
-        label="Password"
+        label="密码"
         label-for="password-input"
-        invalid-feedback="Invalid Password"
+        invalid-feedback="无效密码"
         :state="pwdState"
       >
         <b-form-input
@@ -67,9 +67,9 @@
           {{ errorMessage }}
           <br />
           <span v-if="errorMessageCORS"
-            >Please also check your bot's CORS configuration:
-            <a href="https://www.freqtrade.io/en/latest/rest-api/#cors"
-              >Freqtrade CORS documentation</a
+            >请检查你的机器人的CORS（跨域引用）配置:
+            <a href="https://www.faitrader.io/en/latest/rest-api/#cors"
+              >FaiTrader文档</a
             ></span
           >
         </b-alert>

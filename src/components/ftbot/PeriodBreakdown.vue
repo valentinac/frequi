@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-2">
-      <h3 class="me-auto d-inline">{{ hasWeekly ? 'Period' : 'Daily' }} Breakdown</h3>
+      <h3 class="me-auto d-inline">{{ hasWeekly ? '周期' : '每日' }}统计</h3>
       <b-button class="float-end" size="sm" @click="refreshSummary">
         <i-mdi-refresh />
       </b-button>
@@ -44,10 +44,10 @@ const botStore = useBotStore();
 const hasWeekly = computed(() => botStore.activeBot.botApiVersion >= 2.33);
 
 const periodicBreakdownSelections = computed(() => {
-  const vals = [{ value: TimeSummaryOptions.daily, text: 'Days' }];
+  const vals = [{ value: TimeSummaryOptions.daily, text: '日' }];
   if (hasWeekly.value) {
-    vals.push({ value: TimeSummaryOptions.weekly, text: 'Weeks' });
-    vals.push({ value: TimeSummaryOptions.monthly, text: 'Months' });
+    vals.push({ value: TimeSummaryOptions.weekly, text: '周' });
+    vals.push({ value: TimeSummaryOptions.monthly, text: '月' });
   }
   return vals;
 });
@@ -75,24 +75,24 @@ const selectedStatsSorted = computed(() => {
 
 const dailyFields = computed<TableField[]>(() => {
   const res: TableField[] = [
-    { key: 'date', label: 'Day' },
+    { key: 'date', label: '日期' },
     {
       key: 'abs_profit',
-      label: 'Profit',
+      label: '盈亏',
       formatter: (value: unknown) =>
         formatPrice(value as number, botStore.activeBot.stakeCurrencyDecimals),
     },
     {
       key: 'fiat_value',
-      label: `In ${botStore.activeBot.dailyStats.fiat_display_currency}`,
+      label: `用${botStore.activeBot.dailyStats.fiat_display_currency}`,
       formatter: (value: unknown) => formatPrice(value as number, 2),
     },
-    { key: 'trade_count', label: 'Trades' },
+    { key: 'trade_count', label: '订单数' },
   ];
   if (botStore.activeBot.botApiVersion >= 2.16)
     res.push({
       key: 'rel_profit',
-      label: 'Profit%',
+      label: '利润率%',
       formatter: (value: unknown) => formatPercent(value as number, 2),
     });
   return res;

@@ -2,7 +2,7 @@
   <div>
     <div class="d-flex justify-content-center">
       <div>
-        <label for="dateFrom">Start Date</label>
+        <label for="dateFrom">开始时间</label>
         <Datepicker
           id="dateFrom"
           v-model="dateFrom"
@@ -17,7 +17,7 @@
         ></Datepicker>
       </div>
       <div class="ms-2">
-        <label for="dateTo">End Date</label>
+        <label for="dateTo">结束时间</label>
         <Datepicker
           v-model="dateTo"
           :dark="settingsStore.isDarkTheme"

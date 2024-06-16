@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="mb-2">
-      <label class="me-auto h3">Pair Locks</label>
+      <label class="me-auto h3">锁定的币种</label>
       <b-button class="float-end" size="sm" @click="botStore.activeBot.getLocks">
         <i-mdi-refresh />
       </b-button>

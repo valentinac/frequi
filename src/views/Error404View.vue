@@ -1,10 +1,10 @@
 <template>
   <div>
-    <h1 class="mb-5">404 Error.</h1>
-    <p class="h4">Ahhhhhhhh! The page you are looking for does not exist.</p>
+    <h1 class="mb-5">404 异常.</h1>
+    <p class="h4">Ahhhhhhhh! 访问页面似乎不存在.</p>
     <p>
-      Don't worry, you can head back to
-      <router-link to="/"> <span>the main page</span> </router-link>.
+      不必担心, 您可以退回到
+      <router-link to="/"> <span>首页</span> </router-link>.
     </p>
   </div>
 </template>

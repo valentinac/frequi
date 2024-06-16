@@ -4,7 +4,7 @@ forceexit
     <button
       class="btn btn-secondary btn-sm ms-1"
       :disabled="!botStore.activeBot.isTrading || isRunning"
-      title="Start Trading"
+      title="开启交易"
       @click="botStore.activeBot.startBot()"
     >
       <i-mdi-play height="24" width="24" />
@@ -12,7 +12,7 @@ forceexit
     <button
       class="btn btn-secondary btn-sm ms-1"
       :disabled="!botStore.activeBot.isTrading || !isRunning"
-      title="Stop Trading - Also stops handling open trades."
+      title="暂停交易 - 也停止处理未平仓交易."
       @click="handleStopBot()"
     >
       <i-mdi-stop height="24" width="24" />
@@ -20,7 +20,7 @@ forceexit
     <button
       class="btn btn-secondary btn-sm ms-1"
       :disabled="!botStore.activeBot.isTrading || !isRunning"
-      title="StopBuy - Stops buying, but still handles open trades"
+      title="停止买入 - 不再买入, 但仍处理已开仓订单"
       @click="handleStopBuy()"
     >
       <i-mdi-pause height="24" width="24" />
@@ -28,7 +28,7 @@ forceexit
     <button
       class="btn btn-secondary btn-sm ms-1"
       :disabled="!botStore.activeBot.isTrading"
-      title="Reload Config - reloads configuration including strategy, resetting all settings changed on the fly."
+      title="重新加载配置 - 重新加载配置，包括策略，重置所有动态更改的设置."
       @click="handleReloadConfig()"
     >
       <i-mdi-reload height="24" width="24" />
@@ -36,7 +36,7 @@ forceexit
     <button
       class="btn btn-secondary btn-sm ms-1"
       :disabled="!botStore.activeBot.isTrading"
-      title="Force exit all"
+      title="全部平仓"
       @click="handleForceExit()"
     >
       <i-mdi-close-box-multiple height="24" width="24" />
@@ -45,7 +45,7 @@ forceexit
       v-if="botStore.activeBot.botState && botStore.activeBot.botState.force_entry_enable"
       class="btn btn-secondary btn-sm ms-1"
       :disabled="!botStore.activeBot.isTrading || !isRunning"
-      title="Force enter - Immediately enter a trade at an optional price. Exits are then handled according to strategy rules."
+      title="开仓 - 立即以可选价格创建订单。然后根据策略规则处理退出."
       @click="forceEnter = true"
     >
       <i-mdi-plus-box-multiple-outline style="font-size: 20px" />
@@ -54,7 +54,7 @@ forceexit
       v-if="botStore.activeBot.isWebserverMode && false"
       :disabled="botStore.activeBot.isTrading"
       class="btn btn-secondary btn-sm ms-1"
-      title="Start Trading mode"
+      title="开始交易模式"
       @click="botStore.activeBot.startTrade()"
     >
       <i-mdi-play class="fs-4" />
@@ -81,8 +81,8 @@ const isRunning = computed((): boolean => {
 
 const handleStopBot = () => {
   const msg: MsgBoxObject = {
-    title: 'Stop Bot',
-    message: 'Stop the bot loop from running?',
+    title: '停止机器人',
+    message: '停止机器人的循环运行?',
     accept: () => {
       botStore.activeBot.stopBot();
     },
@@ -92,8 +92,8 @@ const handleStopBot = () => {
 
 const handleStopBuy = () => {
   const msg: MsgBoxObject = {
-    title: 'Stop Buying',
-    message: 'Freqtrade will continue to handle open trades.',
+    title: '停止买入',
+    message: '机器人仍继续处理已开仓订单.',
     accept: () => {
       botStore.activeBot.stopBuy();
     },
@@ -103,10 +103,10 @@ const handleStopBuy = () => {
 
 const handleReloadConfig = () => {
   const msg: MsgBoxObject = {
-    title: 'Reload',
-    message: 'Reload configuration (including strategy)?',
+    title: '重新加载',
+    message: '重新加载配置(包括策略)?',
     accept: () => {
-      console.log('reload...');
+      console.log('重载中...');
       botStore.activeBot.reloadConfig();
     },
   };
@@ -115,8 +115,8 @@ const handleReloadConfig = () => {
 
 const handleForceExit = () => {
   const msg: MsgBoxObject = {
-    title: 'ForceExit all',
-    message: 'Really forceexit ALL trades?',
+    title: '全部平仓',
+    message: '是否对所有开仓订单进行强平?',
     accept: () => {
       const payload: ForceSellPayload = {
         tradeid: 'all',

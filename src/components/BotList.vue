@@ -1,6 +1,6 @@
 <template>
   <div v-if="botStore.botCount > 0">
-    <h3 v-if="!small">Available bots</h3>
+    <h3 v-if="!small">可用机器人</h3>
     <b-list-group ref="sortContainer">
       <b-list-group-item
         v-for="bot in botListComp"
@@ -30,7 +30,7 @@
         />
       </b-list-group-item>
     </b-list-group>
-    <LoginModal v-if="!small" ref="loginModal" class="mt-2" login-text="Add new bot" />
+    <LoginModal v-if="!small" ref="loginModal" class="mt-2" login-text="添加新的机器人" />
   </div>
 </template>
 

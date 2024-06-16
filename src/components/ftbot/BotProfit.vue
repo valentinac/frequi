@@ -20,15 +20,15 @@ const props = defineProps({
 });
 
 const profitFields: TableField[] = [
-  { key: 'metric', label: 'Metric' },
-  { key: 'value', label: 'Value' },
+  { key: 'metric', label: '指标名' },
+  { key: 'value', label: '指标值' },
 ];
 
 const profitItems = computed<TableItem[]>(() => {
   if (!props.profit) return [];
   return [
     {
-      metric: 'ROI closed trades',
+      metric: '已完成交易ROI：',
       value: props.profit.profit_closed_coin
         ? `${formatPriceCurrency(
             props.profit.profit_closed_coin,
@@ -39,7 +39,7 @@ const profitItems = computed<TableItem[]>(() => {
       // (&sum; ${formatPercent(props.profit.profit_closed_ratio_sum,  2,)})`
     },
     {
-      metric: 'ROI all trades',
+      metric: '所有交易ROI：',
       value: props.profit.profit_all_coin
         ? `${formatPriceCurrency(
             props.profit.profit_all_coin,
@@ -51,50 +51,50 @@ const profitItems = computed<TableItem[]>(() => {
     },
 
     {
-      metric: 'Total Trade count',
+      metric: '交易笔数：',
       value: `${props.profit.trade_count ?? 0}`,
     },
     {
-      metric: 'Bot started',
+      metric: '机器人启动时间：',
       value: props.profit.bot_start_timestamp,
       isTs: true,
     },
     {
-      metric: 'First Trade opened',
+      metric: '第一笔交易开仓时间：',
       value: props.profit.first_trade_timestamp,
       isTs: true,
     },
     {
-      metric: 'Latest Trade opened',
+      metric: '最近一笔交易开仓时间：',
       value: props.profit.latest_trade_timestamp,
       isTs: true,
     },
     {
-      metric: 'Win / Loss',
+      metric: '止盈 / 止损：',
       value: `${props.profit.winning_trades ?? 0} / ${props.profit.losing_trades ?? 0}`,
     },
     {
-      metric: 'Winrate',
+      metric: '胜率：',
       value: `${props.profit.winrate ? formatPercent(props.profit.winrate) : 'N/A'}`,
     },
     {
-      metric: 'Expectancy (ratio)',
+      metric: '期望值 (比率)：',
       value: `${props.profit.expectancy ? props.profit.expectancy.toFixed(2) : 'N/A'} (${
         props.profit.expectancy_ratio ? props.profit.expectancy_ratio.toFixed(2) : 'N/A'
       })`,
     },
     {
-      metric: 'Avg. Duration',
+      metric: '平均持仓时间：',
       value: `${props.profit.avg_duration ?? 'N/A'}`,
     },
     {
-      metric: 'Best performing',
+      metric: '表现最佳币种：',
       value: props.profit.best_pair
         ? `${props.profit.best_pair}: ${formatPercent(props.profit.best_pair_profit_ratio, 2)}`
         : 'N/A',
     },
     {
-      metric: 'Trading volume',
+      metric: '交易总量：',
       value: `${formatPriceCurrency(
         props.profit.trading_volume ?? 0,
         props.stakeCurrency,
@@ -102,11 +102,11 @@ const profitItems = computed<TableItem[]>(() => {
       )}`,
     },
     {
-      metric: 'Profit factor',
+      metric: '盈利因子：',
       value: `${props.profit.profit_factor ? props.profit.profit_factor.toFixed(2) : 'N/A'}`,
     },
     {
-      metric: 'Max Drawdown',
+      metric: '最大回撤：',
       value: `${props.profit.max_drawdown ? formatPercent(props.profit.max_drawdown, 2) : 'N/A'} (${
         props.profit.max_drawdown_abs
           ? formatPriceCurrency(

@@ -1,7 +1,7 @@
 <template>
   <div>
     <div>
-      <h3>Whitelist Methods</h3>
+      <h3>白名单配置</h3>
 
       <div v-if="botStore.activeBot.pairlistMethods.length" class="list wide">
         <div
@@ -14,7 +14,7 @@
       </div>
     </div>
     <!-- Show Whitelist -->
-    <h3 :title="`${botStore.activeBot.whitelist.length} pairs`">Whitelist</h3>
+    <h3 :title="`${botStore.activeBot.whitelist.length} pairs`">白名单</h3>
     <div v-if="botStore.activeBot.whitelist.length" class="list">
       <div
         v-for="(pair, key) in botStore.activeBot.whitelist"
@@ -24,15 +24,15 @@
         {{ pair }}
       </div>
     </div>
-    <p v-else>List Unavailable. Please Login and make sure server is running.</p>
+    <p v-else>列表不可用. 请登录并确保服务器正在运行.</p>
     <hr />
 
     <!-- Blacklsit -->
     <div>
       <label
         class="me-auto h3"
-        title="Blacklist - Select (followed by a click on '-') to remove pairs"
-        >Blacklist</label
+        title="黑名单 - 选择(然后单击“-”)以删除对"
+        >黑名单</label
       >
       <div class="float-end d-flex d-flex-columns pe-1">
         <b-button
@@ -46,7 +46,7 @@
           v-if="botStore.activeBot.botApiVersion >= 1.12"
           size="sm"
           class="col-6"
-          title="Select pairs to delete pairs from your blacklist."
+          title="选择币种，将币种从黑名单中删除."
           :disabled="blacklistSelect.length === 0"
           @click="deletePairs"
         >
@@ -54,7 +54,7 @@
         </b-button>
       </div>
       <BPopover
-        title="Add to blacklist"
+        title="添加黑名单"
         target="blacklist-add-btn"
         triggers="click"
         teleport-to="body"
@@ -62,7 +62,7 @@
       >
         <form ref="form" @submit.prevent="addBlacklistPair">
           <div>
-            <b-form-group label-cols="2" label="Pair" label-for="pair-input">
+            <b-form-group label-cols="2" label="币种" label-for="pair-input">
               <b-form-input
                 id="pair-input"
                 v-model="newblacklistpair"
@@ -88,7 +88,7 @@
         <span class="check"><i-mdi-check-circle /></span>{{ pair }}
       </div>
     </div>
-    <p v-else>BlackList Unavailable. Please Login and make sure server is running.</p>
+    <p v-else>黑名单不可用. 请登录并确保服务器正在运行.</p>
     <!-- Pagination -->
     <!-- TODO Add pagination support -->
   </div>

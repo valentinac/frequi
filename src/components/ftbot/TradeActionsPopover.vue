@@ -49,7 +49,7 @@ function handleForceEntry(item: Trade) {
       :id="`btn-actions-${id}`"
       class="btn-xs"
       size="sm"
-      title="Actions"
+      title="操作"
       @click="popoverOpen = !popoverOpen"
     >
       <i-mdi-gesture-tap />
@@ -57,7 +57,7 @@ function handleForceEntry(item: Trade) {
     <BPopover
       teleport-to="body"
       :target="`btn-actions-${id}`"
-      :title="`Actions for ${trade.pair}`"
+      :title="`对${trade.pair}的操作`"
       triggers="manual"
       :show="popoverOpen"
       placement="left"
@@ -74,7 +74,7 @@ function handleForceEntry(item: Trade) {
         @force-entry="handleForceEntry"
       />
       <b-button class="mt-1 w-100 text-start" size="sm" @click="popoverOpen = false">
-        <i-mdi-cancel class="me-1" />Close Actions menu
+        <i-mdi-cancel class="me-1" />关闭操作菜单
       </b-button>
     </BPopover>
   </div>
