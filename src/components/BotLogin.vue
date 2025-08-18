@@ -5,7 +5,7 @@
         <b-form-input
           id="name-input"
           v-model="auth.botName"
-          placeholder="机器人名"
+          placeholder="bot name"
           @keydown.enter="handleOk"
         ></b-form-input>
       </b-form-group>

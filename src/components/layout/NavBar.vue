@@ -181,7 +181,7 @@ const resetDynamicLayout = (): void => {
   }
 };
 const setTitle = () => {
-  let title = 'freqUI';
+  let title = 'faiTrader';
   if (settingsStore.openTradesInTitle === OpenTradeVizOptions.asTitle) {
     title = `(${botStore.activeBotorUndefined?.openTradeCount}) ${title}`;
   }

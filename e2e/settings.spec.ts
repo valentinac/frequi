@@ -11,7 +11,7 @@ test.describe('Settings', () => {
       // page.waitForResponse('**/ShowConf'),
     ]);
     // await expect(page.locator('li', { hasText: 'Online' })).toBeInViewport();
-    await expect(page.locator('h1', { hasText: 'Welcome to the Freqtrade UI' })).toBeInViewport({
+    await expect(page.locator('h1', { hasText: 'Welcome to the faiTrader UI' })).toBeInViewport({
       timeout: 5000,
     });
 
@@ -20,7 +20,7 @@ test.describe('Settings', () => {
       .isVisible()
       .then(() => page.locator('[id=avatar-drop]').click());
     await page.locator('.dropdown-menu > * > [href="/settings"]').click();
-    await expect(page.locator(':text("FreqUI Settings")')).toBeVisible();
+    await expect(page.locator(':text("faiTrader Settings")')).toBeVisible();
 
     // Switch option in the settings.
     await page.locator('select').first().selectOption('asTitle');

@@ -8,7 +8,6 @@ declare global {
   const ColorPreferences: typeof import('./stores/colors')['ColorPreferences']
   const DashboardLayout: typeof import('./stores/layout')['DashboardLayout']
   const EffectScope: typeof import('vue')['EffectScope']
-  const KeyCode: typeof import('./composables/inputListener')['KeyCode']
   const OpenTradeVizOptions: typeof import('./stores/settings')['OpenTradeVizOptions']
   const TradeLayout: typeof import('./stores/layout')['TradeLayout']
   const asyncComputed: typeof import('@vueuse/core')['asyncComputed']
@@ -188,7 +187,6 @@ declare global {
   const useIdle: typeof import('@vueuse/core')['useIdle']
   const useImage: typeof import('@vueuse/core')['useImage']
   const useInfiniteScroll: typeof import('@vueuse/core')['useInfiniteScroll']
-  const useInputListener: typeof import('./composables/inputListener')['useInputListener']
   const useIntersectionObserver: typeof import('@vueuse/core')['useIntersectionObserver']
   const useInterval: typeof import('@vueuse/core')['useInterval']
   const useIntervalFn: typeof import('@vueuse/core')['useIntervalFn']
@@ -307,6 +305,15 @@ declare global {
   // @ts-ignore
   export type { Component, ComponentPublicInstance, ComputedRef, ExtractDefaultPropTypes, ExtractPropTypes, ExtractPublicPropTypes, InjectionKey, PropType, Ref, VNode, WritableComputedRef } from 'vue'
   import('vue')
+  // @ts-ignore
+  export type { ColorPreferences } from './stores/colors'
+  import('./stores/colors')
+  // @ts-ignore
+  export type { TradeLayout, DashboardLayout } from './stores/layout'
+  import('./stores/layout')
+  // @ts-ignore
+  export type { OpenTradeVizOptions } from './stores/settings'
+  import('./stores/settings')
 }
 // for vue template auto import
 import { UnwrapRef } from 'vue'

@@ -56,12 +56,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8080',
+        target: 'http://127.0.0.1:9000',
         changeOrigin: true,
       },
     },
     host: '127.0.0.1',
-    port: 3000,
+    port: 443,
   },
   test: {
     environment: 'happy-dom',
