@@ -1,48 +1,67 @@
 <script setup lang="ts">
-import { PeriodicBreakdown } from '@/types';
-import { TableField, TableItem } from 'bootstrap-vue-next';
+import type { PeriodicBreakdown } from '@/types';
 
-defineProps({
-  periodicBreakdown: {
-    type: Object as () => PeriodicBreakdown,
-    required: true,
-  },
+const props = defineProps<{
+  periodicBreakdown: PeriodicBreakdown;
+}>();
+
+const periodicBreakdownSelections = computed(() => {
+  const res = [
+    { value: 'day', text: 'Days' },
+    { value: 'week', text: 'Weeks' },
+    { value: 'month', text: 'Months' },
+  ];
+  if (props.periodicBreakdown.year) {
+    res.push({ value: 'year', text: 'Years' });
+  }
+
+  return res;
 });
-const periodicBreakdownSelections = [
-  { value: 'day', text: 'Days' },
-  { value: 'week', text: 'Weeks' },
-  { value: 'month', text: 'Months' },
-];
 
 const periodicBreakdownPeriod = ref<string>('month');
-
-const periodicBreakdownFields = computed<TableField[]>(() => {
-  return [
-    { key: 'date', label: 'Date' },
-    { key: 'wins', label: 'Wins' },
-    { key: 'draws', label: 'Draws' },
-    { key: 'loses', label: 'Losses' },
-  ];
-});
 </script>
 
 <template>
-  <b-form-radio-group
-    id="order-direction"
+  <SelectButton
     v-model="periodicBreakdownPeriod"
     :options="periodicBreakdownSelections"
-    name="radios-btn-default"
-    size="sm"
-    buttons
-    style="min-width: 10em"
-    button-variant="outline-primary"
-  ></b-form-radio-group>
-  <b-table
-    small
-    hover
-    stacked="sm"
-    :items="periodicBreakdown[periodicBreakdownPeriod] as unknown as TableItem[]"
-    :fields="periodicBreakdownFields"
-  >
-  </b-table>
+    size="small"
+    :allow-empty="false"
+    class="m-2"
+    option-label="text"
+    option-value="value"
+  ></SelectButton>
+  <DataTable size="small" stacked="sm" :value="periodicBreakdown[periodicBreakdownPeriod]">
+    <Column field="date" header="Date"></Column>
+    <Column field="trades" header="Trades">
+      <template #body="{ data, field }">
+        {{ data[field] ?? 'N/A' }}
+      </template>
+    </Column>
+    <Column field="profit_abs" header="Total Profit" :body="formatPrice">
+      <template #body="{ data, field }">
+        {{ data[field] ? data[field].toFixed(2) : 'N/A' }}
+      </template>
+    </Column>
+    <Column field="profit_factor" header="Profit Factor">
+      <template #body="{ data, field }">
+        {{ formatPrice(data[field], 2) }}
+      </template>
+    </Column>
+    <Column field="wins" header="Wins"></Column>
+    <Column field="draws" header="Draws"></Column>
+    <Column field="losses" header="Losses">
+      <template #body="{ data }">
+        {{ data.loses ?? data.losses ?? 'N/A' }}
+      </template>
+    </Column>
+    <Column field="wins" header="Win Rate">
+      <template #body="{ data }">
+        {{
+          ((data.wins / (data.wins + data.draws + (data.loses ?? data.losses))) * 100).toFixed(2) +
+          '%'
+        }}
+      </template>
+    </Column>
+  </DataTable>
 </template>

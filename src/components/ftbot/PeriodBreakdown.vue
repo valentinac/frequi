@@ -1,47 +1,16 @@
-<template>
-  <div>
-    <div class="mb-2">
-      <h3 class="me-auto d-inline">{{ hasWeekly ? '周期' : '每日' }}统计</h3>
-      <b-button class="float-end" size="sm" @click="refreshSummary">
-        <i-mdi-refresh />
-      </b-button>
-    </div>
-    <b-form-radio-group
-      v-if="hasWeekly"
-      id="order-direction"
-      v-model="periodicBreakdownPeriod"
-      :options="periodicBreakdownSelections"
-      name="radios-btn-default"
-      size="sm"
-      buttons
-      style="min-width: 10em"
-      button-variant="outline-primary"
-      @change="refreshSummary"
-    ></b-form-radio-group>
-
-    <div class="ps-1">
-      <TimePeriodChart
-        v-if="selectedStats"
-        :daily-stats="selectedStatsSorted"
-        :show-title="false"
-      />
-    </div>
-    <div>
-      <b-table class="table-sm" :items="selectedStats.data" :fields="dailyFields"> </b-table>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { formatPercent, formatPrice } from '@/shared/formatters';
-import { useBotStore } from '@/stores/ftbotwrapper';
-import { TableField } from 'bootstrap-vue-next';
-
 import { TimeSummaryOptions } from '@/types';
 
 const botStore = useBotStore();
+const settingsStore = useSettingsStore();
 
-const hasWeekly = computed(() => botStore.activeBot.botApiVersion >= 2.33);
+const props = defineProps<{
+  multiBotView?: boolean;
+}>();
+
+const hasWeekly = computed(
+  () => botStore.activeBot.botFeatures.weeklyMonthlyStats || props.multiBotView,
+);
 
 const periodicBreakdownSelections = computed(() => {
   const vals = [{ value: TimeSummaryOptions.daily, text: '日' }];
@@ -51,16 +20,32 @@ const periodicBreakdownSelections = computed(() => {
   }
   return vals;
 });
-const periodicBreakdownPeriod = ref<TimeSummaryOptions>(TimeSummaryOptions.daily);
+
+const absRelSelections = ref([
+  { value: 'abs_profit', text: 'Abs $' },
+  { value: 'rel_profit', text: 'Rel %' },
+]);
 
 const selectedStats = computed(() => {
-  switch (periodicBreakdownPeriod.value) {
+  if (props.multiBotView) {
+    switch (settingsStore.timeProfitPeriod) {
+      case TimeSummaryOptions.weekly:
+        return botStore.allWeeklyStatsSelectedBots;
+      case TimeSummaryOptions.monthly:
+        return botStore.allMonthlyStatsSelectedBots;
+      default:
+        return botStore.allDailyStatsSelectedBots;
+    }
+  }
+
+  switch (settingsStore.timeProfitPeriod) {
     case TimeSummaryOptions.weekly:
       return botStore.activeBot.weeklyStats;
     case TimeSummaryOptions.monthly:
       return botStore.activeBot.monthlyStats;
+    default:
+      return botStore.activeBot.dailyStats;
   }
-  return botStore.activeBot.dailyStats;
 });
 
 const selectedStatsSorted = computed(() => {
@@ -73,36 +58,91 @@ const selectedStatsSorted = computed(() => {
   };
 });
 
-const dailyFields = computed<TableField[]>(() => {
-  const res: TableField[] = [
-    { key: 'date', label: '日期' },
-    {
-      key: 'abs_profit',
-      label: '盈亏',
-      formatter: (value: unknown) =>
-        formatPrice(value as number, botStore.activeBot.stakeCurrencyDecimals),
-    },
-    {
-      key: 'fiat_value',
-      label: `用${botStore.activeBot.dailyStats.fiat_display_currency}`,
-      formatter: (value: unknown) => formatPrice(value as number, 2),
-    },
-    { key: 'trade_count', label: '订单数' },
-  ];
-  if (botStore.activeBot.botApiVersion >= 2.16)
-    res.push({
-      key: 'rel_profit',
-      label: '利润率%',
-      formatter: (value: unknown) => formatPercent(value as number, 2),
-    });
-  return res;
-});
-
 function refreshSummary() {
-  botStore.activeBot.getTimeSummary(periodicBreakdownPeriod.value);
+  if (props.multiBotView) {
+    botStore.allGetTimeSummary(settingsStore.timeProfitPeriod);
+  } else {
+    botStore.activeBot.getTimeSummary(settingsStore.timeProfitPeriod);
+  }
 }
 
 onMounted(() => {
   refreshSummary();
 });
 </script>
+
+<template>
+  <div class="flex flex-col h-full">
+    <div v-if="!props.multiBotView" class="mb-2">
+      <h3 class="me-auto inline text-xl">{{ hasWeekly ? '周期' : '每日' }} 分解</h3>
+      <Button class="float-end" severity="secondary" @click="refreshSummary">
+        <template #icon>
+          <i-mdi-refresh />
+        </template>
+      </Button>
+    </div>
+    <div class="flex align-center justify-between">
+      <SelectButton
+        v-if="hasWeekly"
+        id="order-direction"
+        v-model="settingsStore.timeProfitPeriod"
+        :options="periodicBreakdownSelections"
+        name="radios-btn-default"
+        size="small"
+        :allow-empty="false"
+        option-label="text"
+        option-value="value"
+        @change="refreshSummary"
+      ></SelectButton>
+      <SelectButton
+        v-model="settingsStore.timeProfitPreference"
+        name="radios-btn-select"
+        size="small"
+        :allow-empty="false"
+        option-label="text"
+        option-value="value"
+        :options="absRelSelections"
+        buttons
+        button-variant="outline-primary"
+      >
+      </SelectButton>
+    </div>
+
+    <div class="ps-1">
+      <TimePeriodChart
+        v-if="selectedStats"
+        :daily-stats="selectedStatsSorted"
+        :show-title="false"
+        :profit-col="settingsStore.timeProfitPreference"
+      />
+    </div>
+    <div v-if="!props.multiBotView">
+      <DataTable size="small" :value="selectedStats.data">
+        <Column field="date" header="日期"></Column>
+        <Column field="abs_profit" header="盈亏">
+          <template #body="{ data, field }">
+            {{ formatPrice(data[field], botStore.activeBot.stakeCurrencyDecimals) }}
+          </template>
+        </Column>
+        <Column
+          field="fiat_value"
+          :header="`用 ${botStore.activeBot.dailyStats.fiat_display_currency}`"
+        >
+          <template #body="{ data, field }">
+            {{ formatPrice(data[field], 2) }}
+          </template>
+        </Column>
+        <Column field="trade_count" header="订单数"></Column>
+        <Column
+          v-if="botStore.activeBot.botFeatures.advancedDailyMetrics"
+          field="rel_profit"
+          header="利润率%"
+        >
+          <template #body="{ data, field }">
+            {{ formatPercent(data[field], 2) }}
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+  </div>
+</template>

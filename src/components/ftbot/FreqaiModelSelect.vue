@@ -1,38 +1,6 @@
-<template>
-  <div>
-    <div class="w-100 d-flex">
-      <b-form-select
-        id="freqaiModel-select"
-        v-model="locFreqaiModel"
-        :options="botStore.activeBot.freqaiModelList"
-      >
-      </b-form-select>
-      <div class="ms-2">
-        <b-button @click="botStore.activeBot.getFreqAIModelList">
-          <i-mdi-refresh />
-        </b-button>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { useBotStore } from '@/stores/ftbotwrapper';
-
-const props = defineProps({
-  modelValue: { type: String, required: true },
-});
-const emit = defineEmits(['update:modelValue']);
+const locFreqaiModel = defineModel<string>();
 const botStore = useBotStore();
-
-const locFreqaiModel = computed({
-  get() {
-    return props.modelValue;
-  },
-  set(freqaiModel: string) {
-    emit('update:modelValue', freqaiModel);
-  },
-});
 
 onMounted(() => {
   if (botStore.activeBot.freqaiModelList.length === 0) {
@@ -40,3 +8,29 @@ onMounted(() => {
   }
 });
 </script>
+
+<template>
+  <div>
+    <div class="w-full flex">
+      <Select
+        v-model="locFreqaiModel"
+        :options="botStore.activeBot.freqaiModelList"
+        fluid
+        size="small"
+      >
+      </Select>
+      <div class="ms-2">
+        <Button
+          severity="secondary"
+          variant="outlined"
+          size="small"
+          @click="botStore.activeBot.getFreqAIModelList"
+        >
+          <template #icon>
+            <i-mdi-refresh />
+          </template>
+        </Button>
+      </div>
+    </div>
+  </div>
+</template>

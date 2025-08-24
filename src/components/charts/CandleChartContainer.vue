@@ -1,138 +1,33 @@
-<template>
-  <div class="d-flex h-100">
-    <div class="flex-fill w-100 flex-column align-items-stretch d-flex h-100">
-      <div class="d-flex me-0">
-        <div class="ms-1 ms-md-2 d-flex flex-wrap flex-md-nowrap align-items-center w-auto">
-          <span class="ms-md-2 text-nowrap">{{ strategyName }} | {{ timeframe || '' }}</span>
-          <v-select
-            v-model="botStore.activeBot.plotPair"
-            class="ms-md-2"
-            :options="availablePairs"
-            style="min-width: 7em"
-            size="sm"
-            :clearable="false"
-            @input="refresh"
-          >
-          </v-select>
-
-          <b-button
-            title="刷新图表"
-            class="ms-2"
-            :disabled="!!!botStore.activeBot.plotPair || isLoadingDataset"
-            size="sm"
-            @click="refresh"
-          >
-            <i-mdi-refresh />
-          </b-button>
-
-          <b-spinner v-if="isLoadingDataset" small class="ms-2" label="Spinning" />
-          <div class="d-flex flex-column">
-            <div class="d-flex flex-row flex-wrap">
-              <small v-if="dataset" class="ms-2 text-nowrap" title="多单开仓信号"
-                >多单开仓: {{ dataset.enter_long_signals || dataset.buy_signals }}</small
-              >
-              <small v-if="dataset" class="ms-2 text-nowrap" title="多单平仓信号"
-                >多单平仓: {{ dataset.exit_long_signals || dataset.sell_signals }}</small
-              >
-            </div>
-            <div class="d-flex flex-row flex-wrap">
-              <small v-if="dataset && dataset.enter_short_signals" class="ms-2 text-nowrap"
-                >空单开仓: {{ dataset.enter_short_signals }}</small
-              >
-              <small v-if="dataset && dataset.exit_short_signals" class="ms-2 text-nowrap"
-                >空单平仓: {{ dataset.exit_short_signals }}</small
-              >
-            </div>
-          </div>
-        </div>
-        <div class="ms-auto d-flex align-items-center w-auto">
-          <b-form-checkbox v-model="settingsStore.useHeikinAshiCandles"
-            ><small class="text-nowrap">平均K线（Heikin Ashi）</small></b-form-checkbox
-          >
-
-          <div class="ms-2">
-            <PlotConfigSelect></PlotConfigSelect>
-          </div>
-
-          <div class="ms-2 me-0 me-md-1">
-            <b-button size="sm" title="图表配置" @click="showConfigurator">
-              <i-mdi-cog width="12" height="12" />
-            </b-button>
-          </div>
-        </div>
-      </div>
-      <div class="h-100 w-100 d-flex">
-        <div class="flex-grow-1">
-          <CandleChart
-            v-if="hasDataset"
-            :dataset="dataset"
-            :trades="trades"
-            :plot-config="plotStore.plotConfig"
-            :heikin-ashi="settingsStore.useHeikinAshiCandles"
-            :use-u-t-c="settingsStore.timezone === 'UTC'"
-            :theme="settingsStore.chartTheme"
-            :slider-position="sliderPosition"
-            :color-up="colorStore.colorUp"
-            :color-down="colorStore.colorDown"
-          >
-          </CandleChart>
-          <div v-else class="m-auto">
-            <b-spinner v-if="isLoadingDataset" label="Spinning" />
-            <div v-else style="font-size: 1.5rem">
-              {{ noDatasetText }}
-            </div>
-            <p v-if="botStore.activeBot.historyTakesLonger">
-              This is taking longer than expected ... Hold on ...
-            </p>
-          </div>
-        </div>
-        <transition name="fade">
-          <div v-if="!plotConfigModal" v-show="showPlotConfig" class="w-25">
-            <PlotConfigurator :columns="datasetColumns" :is-visible="showPlotConfig ?? false" />
-          </div>
-        </transition>
-      </div>
-    </div>
-    <b-modal
-      v-if="plotConfigModal"
-      id="plotConfiguratorModal"
-      v-model="showPlotConfigModal"
-      title="图表配置"
-      ok-only
-      hide-backdrop
-    >
-      <PlotConfigurator :is-visible="showPlotConfigModal" :columns="datasetColumns" />
-    </b-modal>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { usePlotConfigStore } from '@/stores/plotConfig';
-import { useSettingsStore } from '@/stores/settings';
-import { ChartSliderPosition, LoadingStatus, PairHistory, Trade } from '@/types';
-import vSelect from 'vue-select';
+import type { ChartSliderPosition, PairHistory, Trade } from '@/types';
+import { LoadingStatus } from '@/types';
 
-import { useBotStore } from '@/stores/ftbotwrapper';
-
-import { useColorStore } from '@/stores/colors';
-
-const props = defineProps({
-  trades: { required: false, default: () => [], type: Array as () => Trade[] },
-  availablePairs: { required: true, type: Array as () => string[] },
-  timeframe: { required: true, type: String },
-  historicView: { required: false, default: false, type: Boolean },
-  plotConfigModal: { required: false, default: true, type: Boolean },
-  /** Only required if historicView is true */
-  timerange: { required: false, default: '', type: String },
-  /** Only required if historicView is true */
-  strategy: { required: false, default: '', type: String },
-  freqaiModel: { required: false, default: undefined, type: String },
-  sliderPosition: {
-    required: false,
-    type: Object as () => ChartSliderPosition,
-    default: () => undefined,
+const props = withDefaults(
+  defineProps<{
+    trades?: Trade[];
+    availablePairs: string[];
+    timeframe: string;
+    historicView?: boolean;
+    /** Reload data on pair switch if in historic view */
+    reloadDataOnSwitch?: boolean;
+    plotConfigModal?: boolean;
+    strategy?: string;
+    sliderPosition?: ChartSliderPosition;
+  }>(),
+  {
+    trades: () => [],
+    historicView: false,
+    plotConfigModal: true,
+    reloadDataOnSwitch: false,
+    strategy: '',
+    sliderPosition: undefined,
   },
-});
+);
+
+const emit = defineEmits<{
+  refreshData: [pair: string, columns: string[]];
+}>();
+
 const settingsStore = useSettingsStore();
 const colorStore = useColorStore();
 const botStore = useBotStore();
@@ -148,8 +43,12 @@ const dataset = computed((): PairHistory => {
 });
 const strategyName = computed(() => props.strategy || dataset.value?.strategy || '');
 const datasetColumns = computed(() =>
-  dataset.value ? dataset.value.all_columns ?? dataset.value.columns : [],
+  dataset.value ? (dataset.value.all_columns ?? dataset.value.columns) : [],
 );
+const datasetLoadedColumns = computed(() =>
+  dataset.value ? (dataset.value.columns ?? dataset.value.all_columns) : [],
+);
+
 const hasDataset = computed(() => dataset.value && dataset.value.data.length > 0);
 const isLoadingDataset = computed((): boolean => {
   if (props.historicView) {
@@ -187,24 +86,12 @@ function showConfigurator() {
 }
 
 function refresh() {
-  // console.log('refresh', botStore.activeBot.plotPair, props.timeframe);
-  if (botStore.activeBot.plotPair && props.timeframe) {
-    if (props.historicView) {
-      botStore.activeBot.getPairHistory({
-        pair: botStore.activeBot.plotPair,
-        timeframe: props.timeframe,
-        timerange: props.timerange,
-        strategy: props.strategy,
-        freqaimodel: props.freqaiModel,
-        columns: plotStore.usedColumns,
-      });
-    } else {
-      botStore.activeBot.getPairCandles({
-        pair: botStore.activeBot.plotPair,
-        timeframe: props.timeframe,
-        columns: plotStore.usedColumns,
-      });
-    }
+  emit('refreshData', botStore.activeBot.plotPair, plotStore.usedColumns);
+}
+
+function refreshIfNecessary() {
+  if (!hasDataset.value) {
+    refresh();
   }
 }
 
@@ -230,6 +117,8 @@ watch(
   () => {
     if (!props.historicView) {
       refresh();
+    } else if (props.reloadDataOnSwitch) {
+      refreshIfNecessary();
     }
   },
 );
@@ -237,12 +126,21 @@ watch(
 watch(
   () => plotStore.plotConfig,
   () => {
-    // all plotstore.usedColumns are in the dataset
-    const hasAllColumns = plotStore.usedColumns.every((c) => datasetColumns.value.includes(c));
-    if (settingsStore.useReducedPairCalls && !hasAllColumns) {
-      console.log('triggering refresh');
+    // Trigger reload if the used columns are not loaded yet but would be available.
+    const hasAllColumns = plotStore.usedColumns.some(
+      (c) => datasetColumns.value.includes(c) && !datasetLoadedColumns.value.includes(c),
+    );
+
+    if (settingsStore.useReducedPairCalls && hasAllColumns) {
       refresh();
     }
+  },
+);
+
+watch(
+  () => props.timeframe,
+  () => {
+    refreshIfNecessary();
   },
 );
 
@@ -254,13 +152,139 @@ onMounted(() => {
     [botStore.activeBot.plotPair] = props.availablePairs;
   }
   plotStore.plotConfigChanged();
-  if (!hasDataset.value) {
-    refresh();
+  if (!props.historicView) {
+    refreshIfNecessary();
   }
 });
 </script>
 
-<style scoped lang="scss">
+<template>
+  <div class="flex h-full">
+    <div class="flex-fill w-full flex-col align-items-stretch flex h-full">
+      <div class="flex me-0">
+        <div class="ms-1 md:ms-2 flex flex-wrap md:flex-nowrap items-center gap-1">
+          <span class="md:ms-2 text-nowrap">{{ strategyName }} | {{ timeframe || '' }}</span>
+          <Select
+            v-model="botStore.activeBot.plotPair"
+            class="md:ms-2"
+            :options="availablePairs"
+            size="small"
+            :clearable="false"
+            @input="refresh"
+          >
+          </Select>
+
+          <Button
+            title="刷新图表"
+            severity="secondary"
+            :disabled="!!!botStore.activeBot.plotPair || isLoadingDataset"
+            size="small"
+            @click="refresh"
+          >
+            <i-mdi-refresh />
+          </Button>
+          <ProgressSpinner
+            v-if="isLoadingDataset"
+            class="w-8 h-8"
+            stroke-width="8"
+            small
+            label="Spinning"
+          />
+          <div class="flex flex-col">
+            <div class="flex flex-row flex-wrap">
+              <small v-if="dataset" class="ms-2 text-sm text-nowrap" title="多单开仓信号"
+                >多单开仓: {{ dataset.enter_long_signals || dataset.buy_signals }}</small
+              >
+              <small v-if="dataset" class="ms-2 text-sm text-nowrap" title="多单平仓信号"
+                >多单平仓: {{ dataset.exit_long_signals || dataset.sell_signals }}</small
+              >
+            </div>
+            <div class="flex flex-row flex-wrap">
+              <small v-if="dataset && dataset.enter_short_signals" class="ms-2 text-sm text-nowrap"
+                >空单开仓: {{ dataset.enter_short_signals }}</small
+              >
+              <small v-if="dataset && dataset.exit_short_signals" class="ms-2 text-sm text-nowrap"
+                >空单平仓: {{ dataset.exit_short_signals }}</small
+              >
+            </div>
+          </div>
+        </div>
+        <div class="ms-auto flex items-center gap-2">
+          <BaseCheckbox v-model="settingsStore.showMarkArea">
+            <span class="text-nowrap">显示图表区域</span>
+          </BaseCheckbox>
+          <BaseCheckbox v-model="settingsStore.useHeikinAshiCandles">
+            <span class="text-nowrap">平均K线（Heikin Ashi）</span>
+          </BaseCheckbox>
+
+          <PlotConfigSelect></PlotConfigSelect>
+
+          <div class="me-0 md:me-1">
+            <Button
+              size="small"
+              title="绘图配置"
+              severity="secondary"
+              @click="showConfigurator"
+            >
+              <template #icon>
+                <i-mdi-cog width="12" height="12" />
+              </template>
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div class="h-full flex">
+        <div class="min-w-0 w-full flex-1">
+          <CandleChart
+            v-if="hasDataset"
+            :dataset="dataset"
+            :trades="trades"
+            :plot-config="plotStore.plotConfig"
+            :heikin-ashi="settingsStore.useHeikinAshiCandles"
+            :show-mark-area="settingsStore.showMarkArea"
+            :use-u-t-c="settingsStore.timezone === 'UTC'"
+            :theme="settingsStore.chartTheme"
+            :slider-position="sliderPosition"
+            :color-up="colorStore.colorUp"
+            :color-down="colorStore.colorDown"
+            :start-candle-count="settingsStore.chartDefaultCandleCount"
+            :label-side="settingsStore.chartLabelSide"
+          />
+          <div v-else class="m-auto">
+            <ProgressSpinner v-if="isLoadingDataset" class="w-5 h-5" label="Spinning" />
+            <div v-else class="text-lg">
+              {{ noDatasetText }}
+            </div>
+            <p v-if="botStore.activeBot.historyTakesLonger">
+              This is taking longer than expected ... Hold on ...
+            </p>
+          </div>
+        </div>
+        <Transition name="fade">
+          <div
+            v-if="!plotConfigModal"
+            v-show="showPlotConfig"
+            class="grow border rounded-md ps-1 border-surface-300 dark:border-surface-700"
+          >
+            <PlotConfigurator :columns="datasetColumns" :is-visible="showPlotConfig ?? false" />
+          </div>
+        </Transition>
+      </div>
+    </div>
+    <Dialog
+      v-if="plotConfigModal"
+      id="plotConfiguratorModal"
+      v-model:visible="showPlotConfigModal"
+      header="Plot Configurator"
+      ok-only
+      hide-backdrop
+    >
+      <PlotConfigurator :is-visible="showPlotConfigModal" :columns="datasetColumns" />
+    </Dialog>
+  </div>
+</template>
+
+<style scoped lang="css">
 .fade-enter-active,
 .fade-leave-active {
   transition: all 0.2s;

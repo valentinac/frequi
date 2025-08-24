@@ -1,6 +1,22 @@
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    description: string;
+    help?: string;
+    classLabel?: string;
+    classValue?: string;
+  }>(),
+  {
+    help: '',
+    classLabel: 'w-4/12 font-bold mb-0',
+    classValue: 'w-8/12',
+  },
+);
+</script>
+
 <template>
-  <div class="d-flex">
-    <div class="d-flex justify-content-between me-2" :class="classLabel">
+  <div class="flex w-full">
+    <div class="flex justify-between me-2" :class="classLabel">
       <label>{{ description }}</label>
       <InfoBox v-if="help" :hint="help" />
     </div>
@@ -9,14 +25,3 @@
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-defineProps({
-  description: { type: String, required: true },
-  help: { type: String, default: '', required: false },
-  classLabel: { type: String, default: 'col-4 fw-bold mb-0' },
-  classValue: { type: String, default: 'col-8' },
-});
-</script>
-
-<style scoped></style>

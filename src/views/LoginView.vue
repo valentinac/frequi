@@ -1,15 +1,9 @@
-<template>
-  <div class="container">
-    <b-card header="FaiTrader机器人登录">
-      <BotLogin ref="loginForm" />
-    </b-card>
-  </div>
-</template>
-
 <script setup lang="ts"></script>
 
-<style scoped>
-.container {
-  max-width: 520px;
-}
-</style>
+<template>
+  <div class="border max-w-xl mx-auto p-4">
+    <DraggableContainer header="FaiQuants机器人登录">
+      <BotLogin ref="loginForm" />
+    </DraggableContainer>
+  </div>
+</template>

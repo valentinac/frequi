@@ -1,47 +1,47 @@
+<script setup lang="ts">
+import EditValue from '../general/EditValue.vue';
+const pairlistStore = usePairlistConfigStore();
+</script>
 <template>
-  <div class="d-flex flex-column flex-sm-row mb-2 gap-2">
-    <b-button
+  <div class="flex flex-col sm:flex-row mb-2 gap-2">
+    <Button
       title="Save configuration"
-      size="sm"
-      variant="primary"
+      size="small"
+      severity="primary"
       @click="pairlistStore.saveConfig(pairlistStore.config.name)"
     >
       <i-mdi-content-save />
-    </b-button>
+    </Button>
     <EditValue
       v-model="pairlistStore.config.name"
       editable-name="config"
       :allow-add="true"
       :allow-duplicate="true"
       :allow-edit="true"
-      class="d-flex flex-grow-1"
+      class="flex grow"
       @delete="pairlistStore.deleteConfig"
       @duplicate="(oldName: string, newName: string) => pairlistStore.duplicateConfig(newName)"
       @new="(name: string) => pairlistStore.newConfig(name)"
       @rename="(oldName: string, newName: string) => pairlistStore.saveConfig(newName)"
     >
-      <b-form-select
+      <Select
         v-model="pairlistStore.configName"
-        size="sm"
+        size="small"
+        class="w-full text-start"
         :options="pairlistStore.savedConfigs.map((c) => c.name)"
         @update:model-value="(config) => pairlistStore.selectOrCreateConfig(config as string)"
       />
     </EditValue>
-    <b-button
+    <Button
       title="Evaluate pairlist"
       :disabled="pairlistStore.evaluating || !pairlistStore.pairlistValid"
-      variant="primary"
+      severity="primary"
       class="px-5"
-      size="sm"
+      size="small"
       @click="pairlistStore.startPairlistEvaluation()"
     >
-      <b-spinner v-if="pairlistStore.evaluating" small></b-spinner>
-      <span>{{ pairlistStore.evaluating ? '' : 'Evaluate' }}</span>
-    </b-button>
+      <ProgressSpinner v-if="pairlistStore.evaluating" class="h-5 w-5"></ProgressSpinner>
+      <span v-else>Evaluate</span>
+    </Button>
   </div>
 </template>
-<script setup lang="ts">
-import { usePairlistConfigStore } from '@/stores/pairlistConfig';
-import EditValue from '../general/EditValue.vue';
-const pairlistStore = usePairlistConfigStore();
-</script>

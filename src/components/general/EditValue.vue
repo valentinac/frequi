@@ -1,92 +1,20 @@
-<template>
-  <form class="d-flex flex-row" @submit.prevent="saveNewName">
-    <div class="flex-grow-1">
-      <slot v-if="mode === EditState.None"> </slot>
-      <b-form-input v-else v-model="localName" size="sm"> </b-form-input>
-    </div>
-    <div
-      class="flex-grow-2 mt-auto d-flex gap-1 ms-1"
-      :class="alignVertical ? 'flex-column' : 'flex-row'"
-    >
-      <template v-if="allowEdit && mode === EditState.None">
-        <b-button
-          size="sm"
-          variant="secondary"
-          :title="`Edit this ${editableName}.`"
-          @click="mode = EditState.Editing"
-        >
-          <i-mdi-pencil />
-        </b-button>
-        <b-button
-          v-if="allowDuplicate"
-          size="sm"
-          variant="secondary"
-          :title="`Duplicate ${editableName}.`"
-          @click="duplicate"
-        >
-          <i-mdi-content-copy />
-        </b-button>
-        <b-button
-          size="sm"
-          variant="secondary"
-          :title="`Delete this ${editableName}.`"
-          @click="$emit('delete', modelValue)"
-        >
-          <i-mdi-delete />
-        </b-button>
-      </template>
-      <b-button
-        v-if="allowAdd && mode === EditState.None"
-        size="sm"
-        :title="`Add new ${editableName}.`"
-        variant="primary"
-        @click="addNewClick"
-        ><i-mdi-plus-box-outline />
-      </b-button>
-      <template v-if="mode !== EditState.None">
-        <b-button
-          size="sm"
-          :title="`Add new ${editableName}`"
-          variant="primary"
-          @click="saveNewName"
-        >
-          <i-mdi-check />
-        </b-button>
-        <b-button size="sm" title="Abort" variant="secondary" @click="abort">
-          <i-mdi-close />
-        </b-button>
-      </template>
-    </div>
-  </form>
-</template>
-
 <script setup lang="ts">
-const props = defineProps({
-  modelValue: {
-    type: String,
-    required: true,
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    allowEdit?: boolean;
+    allowAdd?: boolean;
+    allowDuplicate?: boolean;
+    editableName: string;
+    alignVertical?: boolean;
+  }>(),
+  {
+    allowEdit: false,
+    allowAdd: false,
+    allowDuplicate: false,
+    alignVertical: false,
   },
-  allowEdit: {
-    type: Boolean,
-    default: false,
-  },
-  allowAdd: {
-    type: Boolean,
-    default: false,
-  },
-  allowDuplicate: {
-    type: Boolean,
-    default: false,
-  },
-  editableName: {
-    type: String,
-    required: true,
-  },
-  alignVertical: {
-    type: Boolean,
-    default: false,
-  },
-});
+);
 
 const emit = defineEmits<{
   delete: [value: string];
@@ -142,3 +70,75 @@ function saveNewName() {
   mode.value = EditState.None;
 }
 </script>
+
+<template>
+  <form class="flex flex-row" @submit.prevent="saveNewName">
+    <div class="grow">
+      <slot v-if="mode === EditState.None"> </slot>
+      <InputText v-else v-model="localName" size="small" fluid> </InputText>
+    </div>
+    <div class="mt-auto flex gap-1 ms-1" :class="alignVertical ? 'flex-col' : 'flex-row'">
+      <template v-if="allowEdit && mode === EditState.None">
+        <Button
+          size="small"
+          severity="secondary"
+          :title="`Edit this ${editableName}.`"
+          @click="mode = EditState.Editing"
+        >
+          <template #icon>
+            <i-mdi-pencil />
+          </template>
+        </Button>
+        <Button
+          v-if="allowDuplicate"
+          size="small"
+          severity="secondary"
+          :title="`Duplicate ${editableName}.`"
+          @click="duplicate"
+        >
+          <template #icon>
+            <i-mdi-content-copy />
+          </template>
+        </Button>
+        <Button
+          size="small"
+          severity="secondary"
+          :title="`Delete this ${editableName}.`"
+          @click="$emit('delete', modelValue)"
+        >
+          <template #icon>
+            <i-mdi-delete />
+          </template>
+        </Button>
+      </template>
+      <Button
+        v-if="allowAdd && mode === EditState.None"
+        size="small"
+        :title="`Add new ${editableName}.`"
+        severity="primary"
+        @click="addNewClick"
+      >
+        <template #icon>
+          <i-mdi-plus-box-outline />
+        </template>
+      </Button>
+      <template v-if="mode !== EditState.None">
+        <Button
+          size="small"
+          :title="`Add new ${editableName}`"
+          severity="primary"
+          @click="saveNewName"
+        >
+          <template #icon>
+            <i-mdi-check />
+          </template>
+        </Button>
+        <Button size="small" title="Abort" severity="secondary" @click="abort">
+          <template #icon>
+            <i-mdi-close />
+          </template>
+        </Button>
+      </template>
+    </div>
+  </form>
+</template>

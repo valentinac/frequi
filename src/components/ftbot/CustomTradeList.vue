@@ -1,53 +1,27 @@
-<template>
-  <div class="h-100 overflow-auto p-1">
-    <b-list-group id="tradeList">
-      <b-list-group-item
-        v-for="trade in filteredTrades"
-        :key="trade.trade_id"
-        class="border border-secondary rounded my-05 px-1"
-        @click="tradeClick(trade)"
-      >
-        <CustomTradeListEntry :trade="trade" :stake-currency-decimals="stakeCurrencyDecimals" />
-      </b-list-group-item>
-    </b-list-group>
-
-    <span v-if="trades.length == 0" class="mt-5">{{ emptyText }}</span>
-
-    <div class="w-100 d-flex justify-content-between mt-1">
-      <b-pagination
-        v-if="!activeTrades"
-        v-model="currentPage"
-        :total-rows="rows"
-        :per-page="perPage"
-        aria-controls="tradeList"
-      ></b-pagination>
-      <b-form-input
-        v-if="showFilter"
-        v-model="filterText"
-        type="text"
-        placeholder="Filter"
-        size="sm"
-        style="width: unset"
-      />
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { Trade } from '@/types';
+import type { Trade } from '@/types';
 
-import { useBotStore } from '@/stores/ftbotwrapper';
-
-const props = defineProps({
-  trades: { required: true, type: Array as () => Trade[] },
-  title: { default: 'Trades', type: String },
-  stakeCurrency: { required: false, default: '', type: String },
-  activeTrades: { default: false, type: Boolean },
-  showFilter: { default: false, type: Boolean },
-  multiBotView: { default: false, type: Boolean },
-  emptyText: { default: 'No Trades to show.', type: String },
-  stakeCurrencyDecimals: { default: 3, type: Number },
-});
+const props = withDefaults(
+  defineProps<{
+    trades: Trade[];
+    title?: string;
+    stakeCurrency?: string;
+    activeTrades?: boolean;
+    showFilter?: boolean;
+    multiBotView?: boolean;
+    emptyText?: string;
+    stakeCurrencyDecimals?: number;
+  }>(),
+  {
+    title: 'Trades',
+    stakeCurrency: '',
+    activeTrades: false,
+    showFilter: false,
+    multiBotView: false,
+    emptyText: 'No Trades to show.',
+    stakeCurrencyDecimals: 3,
+  },
+);
 const botStore = useBotStore();
 const currentPage = ref(1);
 const filterText = ref('');
@@ -64,9 +38,37 @@ const tradeClick = (trade) => {
 };
 </script>
 
-<style lang="scss" scoped>
-.my-05 {
-  margin-top: 0.125rem;
-  margin-bottom: 0.125rem;
-}
-</style>
+<template>
+  <div class="h-full overflow-auto p-1">
+    <div id="tradeList">
+      <div
+        v-for="trade in filteredTrades"
+        :key="trade.trade_id"
+        class="border border-surface-500 rounded-sm my-0.5 px-1 py-2"
+        @click="tradeClick(trade)"
+      >
+        <CustomTradeListEntry :trade="trade" :stake-currency-decimals="stakeCurrencyDecimals" />
+      </div>
+    </div>
+
+    <span v-if="trades.length == 0" class="mt-5">{{ emptyText }}</span>
+
+    <div class="w-full flex justify-content-between mt-1">
+      <Paginator
+        v-if="!activeTrades"
+        v-model="currentPage"
+        :total-records="rows"
+        :rows="perPage"
+        aria-controls="tradeList"
+      ></Paginator>
+      <BFormInput
+        v-if="showFilter"
+        v-model="filterText"
+        type="text"
+        placeholder="Filter"
+        size="sm"
+        style="width: unset"
+      />
+    </div>
+  </div>
+</template>

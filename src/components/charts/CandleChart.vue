@@ -1,27 +1,10 @@
-<template>
-  <div class="chart-wrapper">
-    <ECharts v-if="hasData" ref="candleChart" :theme="theme" autoresize manual-update />
-  </div>
-</template>
-
 <script setup lang="ts">
-import { generateAreaCandleSeries, generateCandleSeries } from '@/shared/charts/candleChartSeries';
-import heikinashi from '@/shared/charts/heikinashi';
-import { generateTradeSeries } from '@/shared/charts/tradeChartData';
-import {
-  ChartSliderPosition,
-  ChartType,
-  IndicatorConfig,
-  PairHistory,
-  PlotConfig,
-  Trade,
-} from '@/types';
+import type { ChartSliderPosition, IndicatorConfig, PairHistory, PlotConfig, Trade } from '@/types';
+import { ChartType } from '@/types';
 
 import ECharts from 'vue-echarts';
 
-import { calculateDiff, getDiffColumnsFromPlotConfig } from '@/shared/charts/areaPlotDataset';
-import { dataZoomPartial } from '@/shared/charts/chartZoom';
-import { EChartsOption, ScatterSeriesOption } from 'echarts';
+import type { EChartsOption, ScatterSeriesOption } from 'echarts';
 import { BarChart, CandlestickChart, LineChart, ScatterChart } from 'echarts/charts';
 import {
   AxisPointerComponent,
@@ -36,14 +19,13 @@ import {
   TooltipComponent,
   VisualMapComponent,
   VisualMapPiecewiseComponent,
-  // MarkAreaComponent,
+  MarkAreaComponent,
   MarkLineComponent,
   // MarkPointComponent,
   GraphicComponent,
 } from 'echarts/components';
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
-import { timestampms } from '@/shared/formatters';
 
 use([
   AxisPointerComponent,
@@ -58,7 +40,7 @@ use([
   TooltipComponent,
   VisualMapComponent,
   VisualMapPiecewiseComponent,
-  // MarkAreaComponent,
+  MarkAreaComponent,
   MarkLineComponent,
   // MarkPointComponent,
 
@@ -70,27 +52,27 @@ use([
   GraphicComponent,
 ]);
 
+const props = defineProps<{
+  trades: Trade[];
+  dataset: PairHistory;
+  heikinAshi: boolean;
+  showMarkArea: boolean;
+  useUTC: boolean;
+  plotConfig: PlotConfig;
+  theme: 'dark' | 'light';
+  sliderPosition?: ChartSliderPosition;
+  colorUp: string;
+  colorDown: string;
+  labelSide: 'left' | 'right';
+  startCandleCount: number;
+}>();
+
+const isLabelLeft = computed(() => props.labelSide === 'left');
 // Chart default options
-const MARGINLEFT = '5.5%';
-const MARGINRIGHT = '1%';
+const MARGINLEFT = isLabelLeft.value ? '5.5%' : '1%';
+const MARGINRIGHT = isLabelLeft.value ? '1%' : '5.5%';
 const NAMEGAP = 55;
 const SUBPLOTHEIGHT = 8; // Value in %
-
-const props = defineProps({
-  trades: { required: false, default: () => [], type: Array as () => Trade[] },
-  dataset: { required: true, type: Object as () => PairHistory },
-  heikinAshi: { required: false, default: false, type: Boolean },
-  useUTC: { required: false, default: true, type: Boolean },
-  plotConfig: { required: true, type: Object as () => PlotConfig },
-  theme: { default: 'dark', type: String },
-  sliderPosition: {
-    required: false,
-    type: Object as () => ChartSliderPosition,
-    default: () => undefined,
-  },
-  colorUp: { required: false, type: String, default: '#12bb7b' },
-  colorDown: { required: false, type: String, default: '#ef5350' },
-});
 
 // Candle Colors
 const upColor = props.colorUp;
@@ -157,6 +139,9 @@ function updateChart(initial = false) {
   const colLow = columns.findIndex((el) => el === 'low');
   const colClose = columns.findIndex((el) => el === 'close');
   const colVolume = columns.findIndex((el) => el === 'volume');
+  const colEnterTag = columns.findIndex((el) => el === 'enter_tag');
+  const colExitTag = columns.findIndex((el) => el === 'exit_tag');
+
   const colEntryData = columns.findIndex(
     (el) => el === '_buy_signal_close' || el === '_enter_long_signal_close',
   );
@@ -173,7 +158,8 @@ function updateChart(initial = false) {
   if (Array.isArray(chartOptions.value?.dataZoom)) {
     // Only set zoom once ...
     if (initial) {
-      const startingZoom = (1 - 250 / props.dataset.length) * 100;
+      // Add 2 candles to the initial zoom to allow for a "scroll past" effect
+      const startingZoom = (1 - (props.startCandleCount + 2) / props.dataset.length) * 100;
       chartOptions.value.dataZoom.forEach((el, i) => {
         if (chartOptions.value && chartOptions.value.dataZoom) {
           chartOptions.value.dataZoom[i].start = startingZoom;
@@ -190,7 +176,7 @@ function updateChart(initial = false) {
     }
   }
   let dataset = props.heikinAshi
-    ? heikinashi(columns, props.dataset.data)
+    ? heikinAshiDataset(columns, props.dataset.data)
     : props.dataset.data.slice();
 
   diffCols.value.forEach(([colFrom, colTo]) => {
@@ -239,6 +225,7 @@ function updateChart(initial = false) {
           // open, close, low, high
           y: [colOpen, colClose, colLow, colHigh],
         },
+        ...generateMarkArea(props.dataset, props.showMarkArea),
       },
       {
         name: 'Volume',
@@ -254,92 +241,83 @@ function updateChart(initial = false) {
           y: colVolume,
         },
       },
-      {
-        name: 'Entry',
-        type: 'scatter',
-        symbol: 'triangle',
-        symbolSize: 10,
-        xAxisIndex: 0,
-        yAxisIndex: 0,
-        itemStyle: {
-          color: buySignalColor,
-        },
-        encode: {
-          x: colDate,
-          y: colEntryData,
-        },
-      },
     ],
   };
 
-  if (colExitData >= 0) {
-    // if (!Array.isArray(chartOptions.value?.legend) && chartOptions.value?.legend?.data) {
-    //   chartOptions.value.legend.data.push('Long exit');
-    // }
-    if (Array.isArray(options.series)) {
-      options.series.push({
+  if (Array.isArray(options.series)) {
+    const signalConfigs = [
+      {
+        colData: colEntryData,
+        name: 'Entry',
+        symbol: 'triangle',
+        symbolSize: 10,
+        color: buySignalColor,
+        tooltipPrefix: 'Long entry',
+        colTooltip: colEnterTag,
+      },
+      {
+        colData: colExitData,
         name: 'Exit',
-        type: 'scatter',
         symbol: 'diamond',
         symbolSize: 8,
-        xAxisIndex: 0,
-        yAxisIndex: 0,
-        itemStyle: {
-          color: sellSignalColor,
-        },
-        encode: {
-          x: colDate,
-          y: colExitData,
-        },
-      });
-    }
-  }
-
-  if (Array.isArray(options.series)) {
-    if (colShortEntryData >= 0) {
-      options.series.push({
-        // Short entry
+        color: sellSignalColor,
+        tooltipPrefix: 'Long exit',
+        colTooltip: colExitTag,
+      },
+      {
+        colData: colShortEntryData,
         name: 'Entry',
-        type: 'scatter',
         symbol: 'triangle',
-        symbolRotate: 180,
         symbolSize: 10,
-        xAxisIndex: 0,
-        yAxisIndex: 0,
-        itemStyle: {
-          color: shortEntrySignalColor,
-        },
-        tooltip: {
-          // Hide tooltip - it's already there for longs.
-          // show: false,
-        },
-        encode: {
-          x: colDate,
-          y: colShortEntryData,
-        },
-      });
-    }
-    if (colShortExitData >= 0) {
-      options.series.push({
-        // Short exit
+        symbolRotate: 180,
+        color: shortEntrySignalColor,
+        tooltipPrefix: 'Short entry',
+        colTooltip: colEnterTag,
+      },
+      {
+        colData: colShortExitData,
         name: 'Exit',
-        type: 'scatter',
         symbol: 'pin',
         symbolSize: 8,
-        xAxisIndex: 0,
-        yAxisIndex: 0,
-        itemStyle: {
-          color: shortexitSignalColor,
-        },
-        tooltip: {
-          // Hide tooltip - it's already there for longs.
-          // show: false,
-        },
-        encode: {
-          x: colDate,
-          y: colShortExitData,
-        },
-      });
+        color: shortexitSignalColor,
+        tooltipPrefix: 'Short exit',
+        colTooltip: colExitTag,
+      },
+    ];
+
+    for (const config of signalConfigs) {
+      if (config.colData >= 0) {
+        options.series.push({
+          name: config.name,
+          type: 'scatter',
+          symbol: config.symbol,
+          symbolSize: config.symbolSize,
+          symbolRotate: config.symbolRotate ?? 0,
+          xAxisIndex: 0,
+          yAxisIndex: 0,
+          itemStyle: {
+            color: config.color,
+          },
+          tooltip: {
+            valueFormatter: (value) => {
+              if (Array.isArray(value)) {
+                // Show both value and tag
+                return value.length > 0 && value[0]
+                  ? `${config.tooltipPrefix} ${value[0]} ${value[1]?.toString().substring(0, 100) ? `(${value[1]})` : ''}`
+                  : '';
+              }
+              // Fallback for single value
+              return value ? `${config.tooltipPrefix} ${value}` : '';
+            },
+          },
+          encode: {
+            x: colDate,
+            y: config.colData,
+            tooltip:
+              config.colTooltip >= 0 ? [config.colData, config.colTooltip] : [config.colData],
+          },
+        });
+      }
     }
   }
 
@@ -391,9 +369,13 @@ function updateChart(initial = false) {
           scale: true,
           gridIndex: currGridIdx,
           name: key,
+          position: props.labelSide,
           nameLocation: 'middle',
           nameGap: NAMEGAP,
-          axisLabel: { show: true },
+          axisLabel: {
+            show: true,
+            hideOverlap: true,
+          },
           axisLine: { show: false },
           axisTick: { show: false },
           splitLine: { show: false },
@@ -478,7 +460,8 @@ function updateChart(initial = false) {
 
   const nameTrades = 'Trades';
   if (!Array.isArray(chartOptions.value.legend) && chartOptions.value.legend?.data) {
-    chartOptions.value.legend.data.push(nameTrades);
+    // Insert trades into legend, after the default columns
+    chartOptions.value.legend.data.splice(4, 0, nameTrades);
   }
   const tradesSeries: ScatterSeriesOption = generateTradeSeries(
     nameTrades,
@@ -594,6 +577,7 @@ function initializeChartOptions() {
         min: (value) => {
           return value.min - (value.max - value.min) * 0.04;
         },
+        position: props.labelSide,
       },
       {
         scale: true,
@@ -601,7 +585,7 @@ function initializeChartOptions() {
         splitNumber: 2,
         name: 'volume',
         nameLocation: 'middle',
-        // position: 'right',
+        position: props.labelSide,
         nameGap: NAMEGAP,
         axisLabel: { show: false },
         axisLine: { show: false },
@@ -651,12 +635,10 @@ function initializeChartOptions() {
 function updateSliderPosition() {
   if (!props.sliderPosition) return;
 
-  const start = timestampms(props.sliderPosition.startValue - props.dataset.timeframe_ms * 40);
-  const end = timestampms(
-    props.sliderPosition.endValue
-      ? props.sliderPosition.endValue + props.dataset.timeframe_ms * 40
-      : props.sliderPosition.startValue + props.dataset.timeframe_ms * 80,
-  );
+  const start = props.sliderPosition.startValue - props.dataset.timeframe_ms * 40;
+  const end = props.sliderPosition.endValue
+    ? props.sliderPosition.endValue + props.dataset.timeframe_ms * 40
+    : props.sliderPosition.startValue + props.dataset.timeframe_ms * 80;
   if (candleChart.value) {
     candleChart.value.dispatchAction({
       type: 'dataZoom',
@@ -684,48 +666,30 @@ function updateSliderPosition() {
 //   this.signalsCalculated = true;
 // }
 // }
+
 onMounted(() => {
   initializeChartOptions();
 });
 
-watch(
-  () => props.useUTC,
-  () => initializeChartOptions(),
+watch([() => props.useUTC, () => props.theme, () => props.plotConfig], () =>
+  initializeChartOptions(),
 );
 
-watch(
-  () => props.dataset,
-  () => updateChart(),
-);
-
-watch(
-  () => props.plotConfig,
-  () => initializeChartOptions(),
-);
-
-watch(
-  () => props.heikinAshi,
-  () => updateChart(),
-);
+watch([() => props.dataset, () => props.heikinAshi, () => props.showMarkArea], () => updateChart());
 
 watch(
   () => props.sliderPosition,
   () => updateSliderPosition(),
 );
-
-watch(
-  () => props.theme,
-  () => {
-    initializeChartOptions();
-  },
-);
 </script>
 
-<style scoped>
-.chart-wrapper {
-  width: 100%;
-  height: 100%;
-}
+<template>
+  <div class="h-full w-full">
+    <ECharts v-if="hasData" ref="candleChart" :theme="theme" autoresize manual-update />
+  </div>
+</template>
+
+<style scoped lang="css">
 .echarts {
   width: 100%;
   min-height: 200px;

@@ -1,3 +1,5 @@
+import type { ExchangeSelectPayload } from './types';
+
 export interface AvailablePairPayload {
   timeframe?: string;
   stake_currency?: string;
@@ -21,13 +23,24 @@ export interface PairCandlePayload {
   columns?: string[];
 }
 
-export interface PairHistoryPayload {
+export interface PairHistoryPayload extends ExchangeSelectPayload {
   pair: string;
   timeframe: string;
   timerange: string;
   strategy: string;
   freqaimodel?: string;
   columns?: string[];
+  live_mode?: boolean;
+}
+
+export interface MarkArea {
+  type: 'area';
+  start?: string;
+  end?: string;
+  y_start?: number;
+  y_end?: number;
+  color?: string;
+  label?: string;
 }
 
 export interface PairHistory {
@@ -40,7 +53,10 @@ export interface PairHistory {
    * Contains all columns - columns may be filtered to the ones available.
    */
   all_columns?: string[];
+  /** Actual data */
   data: number[][];
+  annotations: MarkArea[];
+
   length: number;
   /** Number of buy signals in this response */
   buy_signals: number;

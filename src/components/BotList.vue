@@ -1,49 +1,12 @@
-<template>
-  <div v-if="botStore.botCount > 0">
-    <h3 v-if="!small">可用机器人</h3>
-    <b-list-group ref="sortContainer">
-      <b-list-group-item
-        v-for="bot in botListComp"
-        :key="bot.botId"
-        :active="bot.botId === botStore.selectedBot"
-        button
-        :title="`${bot.botId} - ${bot.botName} - ${bot.botUrl} - ${
-          botStore.botStores[bot.botId].isBotLoggedIn ? '' : 'Login info expired!'
-        }`"
-        class="d-flex"
-        @click="botStore.selectBot(bot.botId)"
-      >
-        <i-mdi-reorder-horizontal v-if="!small" class="handle me-2 fs-4" />
-        <bot-rename
-          v-if="editingBots.includes(bot.botId)"
-          :bot="bot"
-          @saved="stopEditBot(bot.botId)"
-          @cancelled="stopEditBot(bot.botId)"
-        />
-
-        <bot-entry
-          v-else
-          :bot="bot"
-          :no-buttons="small"
-          @edit="editBot(bot.botId)"
-          @edit-login="editBotLogin(bot.botId)"
-        />
-      </b-list-group-item>
-    </b-list-group>
-    <LoginModal v-if="!small" ref="loginModal" class="mt-2" login-text="添加新的机器人" />
-  </div>
-</template>
-
 <script setup lang="ts">
-import LoginModal from '@/views/LoginModal.vue';
+import LoginModal from '@/components/LoginModal.vue';
 
-import { useBotStore } from '@/stores/ftbotwrapper';
-import { AuthStorageWithBotId, BotDescriptor } from '@/types';
+import type { AuthStorageWithBotId, BotDescriptor } from '@/types';
 import { useSortable } from '@vueuse/integrations/useSortable';
 
-defineProps({
-  small: { default: false, type: Boolean },
-});
+defineProps<{
+  small?: boolean;
+}>();
 
 const botStore = useBotStore();
 
@@ -52,7 +15,7 @@ const loginModal = ref<typeof LoginModal>();
 const sortContainer = ref<HTMLElement | null>(null);
 const botListComp = computed<BotDescriptor[]>(() => {
   //Convert to array
-  return Object.values(botStore.availableBots).sort((a, b) => (a.sortId ?? 0) - (b.sortId ?? 0));
+  return botStore.availableBotsSorted;
 });
 
 useSortable(sortContainer, botListComp, {
@@ -87,3 +50,46 @@ const stopEditBot = (botId: string) => {
   editingBots.value.splice(editingBots.value.indexOf(botId), 1);
 };
 </script>
+
+<template>
+  <div v-if="botStore.botCount > 0" class="w-full mx-2">
+    <h3 v-if="!small" class="font-bold text-2xl mb-2">可用机器人</h3>
+    <ul
+      ref="sortContainer"
+      class="flex flex-col divide-y border-x border-surface-500 rounded-sm border-y divide-solid divide-surface-500"
+    >
+      <li
+        v-for="bot in botListComp"
+        :key="bot.botId"
+        :active="bot.botId === botStore.selectedBot"
+        button
+        :title="`${bot.botId} - ${bot.botName} - ${bot.botUrl} - ${
+          botStore.botStores[bot.botId].isBotLoggedIn ? '' : '登录信息已失效!'
+        }`"
+        class="flex items-center p-2"
+        :class="{
+          'bg-primary-100 dark:bg-primary-800 underline font-semibold':
+            bot.botId === botStore.selectedBot,
+        }"
+        @click="botStore.selectBot(bot.botId)"
+      >
+        <i-mdi-reorder-horizontal v-if="!small" class="handle cursor-pointer me-2 fs-4" />
+        <BotRename
+          v-if="editingBots.includes(bot.botId)"
+          :bot="bot"
+          @saved="stopEditBot(bot.botId)"
+          @cancelled="stopEditBot(bot.botId)"
+        />
+
+        <BotEntry
+          v-else
+          :bot="bot"
+          :no-buttons="small"
+          @edit="editBot(bot.botId)"
+          @edit-login="editBotLogin(bot.botId)"
+        />
+      </li>
+    </ul>
+    <LoginModal v-if="!small" ref="loginModal" class="mt-2" login-text="添加新的机器人" />
+  </div>
+</template>

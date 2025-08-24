@@ -1,63 +1,82 @@
-<template>
-  <footer class="d-md-none">
-    <!-- Only visible on xs (phone) viewport! -->
-    <hr class="my-0" />
-    <div class="d-flex flex-align-center justify-content-between px-2">
-      <router-link
-        v-if="!botStore.canRunBacktest"
-        class="nav-link navbar-nav align-items-center"
-        to="/open_trades"
-      >
-        <i-mdi-folder-open height="24" width="24" />
-        订单
-      </router-link>
-      <router-link
-        v-if="!botStore.canRunBacktest"
-        class="nav-link navbar-nav align-items-center"
-        to="/trade_history"
-      >
-        <i-mdi-folder-lock height="24" width="24" />
-        历史
-      </router-link>
-      <router-link
-        v-if="!botStore.canRunBacktest"
-        class="nav-link navbar-nav align-items-center"
-        to="/pairlist"
-      >
-        <i-mdi-view-list height="24" width="24" />
-        币种列表
-      </router-link>
-      <router-link
-        v-if="!botStore.canRunBacktest"
-        class="nav-link navbar-nav align-items-center"
-        to="/balance"
-      >
-        <i-mdi-bank height="24" width="24" />
-        可用余额
-      </router-link>
-      <router-link
-        v-if="!botStore.canRunBacktest"
-        class="nav-link navbar-nav align-items-center"
-        to="/dashboard"
-      >
-        <i-mdi-view-dashboard-outline height="24" width="24" />
-        控制面板
-      </router-link>
-    </div>
-  </footer>
-</template>
-
 <script setup lang="ts">
-import { useBotStore } from '@/stores/ftbotwrapper';
-
 const botStore = useBotStore();
 </script>
 
-<style lang="scss" scoped>
-[data-theme='dark'] {
-  .router-link-active,
-  .nav-link:active {
-    color: white !important;
-  }
-}
-</style>
+<template>
+  <footer class="md:hidden">
+    <!-- Only visible on xs (phone) viewport! -->
+    <hr class="my-0" />
+    <div class="flex gap-2 justify-between px-2">
+      <Button
+        v-if="!botStore.canRunBacktest"
+        icon-pos="top"
+        variant="link"
+        size="small"
+        as="router-link"
+        class="align-items-center"
+        to="/open_trades"
+        label="交易订单"
+      >
+        <template #icon>
+          <i-mdi-folder-open height="24" width="24" />
+        </template>
+      </Button>
+      <Button
+        v-if="!botStore.canRunBacktest"
+        icon-pos="top"
+        variant="link"
+        size="small"
+        as="router-link"
+        class="align-items-center"
+        to="/trade_history"
+        label="历史"
+      >
+        <template #icon>
+          <i-mdi-folder-lock height="24" width="24" />
+        </template>
+      </Button>
+      <Button
+        v-if="!botStore.canRunBacktest"
+        icon-pos="top"
+        variant="link"
+        size="small"
+        as="router-link"
+        class="align-items-center"
+        to="/pairlist"
+        label="币种列表"
+      >
+        <template #icon>
+          <i-mdi-view-list height="24" width="24" />
+        </template>
+      </Button>
+      <Button
+        v-if="!botStore.canRunBacktest"
+        icon-pos="top"
+        variant="link"
+        size="small"
+        as="router-link"
+        class="align-items-center"
+        to="/balance"
+        label="可用余额"
+      >
+        <template #icon>
+          <i-mdi-bank height="24" width="24" />
+        </template>
+      </Button>
+      <Button
+        v-if="!botStore.canRunBacktest"
+        icon-pos="top"
+        variant="link"
+        size="small"
+        as="router-link"
+        class="align-items-center"
+        to="/dashboard"
+        label="控制面板"
+      >
+        <template #icon>
+          <i-mdi-view-dashboard-outline height="24" width="24" />
+        </template>
+      </Button>
+    </div>
+  </footer>
+</template>

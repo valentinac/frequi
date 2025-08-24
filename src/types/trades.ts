@@ -1,4 +1,4 @@
-import { TradingMode } from './types';
+import type { TradingMode } from './types';
 
 export interface BTOrder {
   amount: number;
@@ -111,6 +111,7 @@ interface TradeBase {
   amount_precision?: number;
   price_precision?: number;
   precision_mode?: number;
+  precision_mode_price?: number;
 
   orders?: Order[];
 }

@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import { formatPrice } from '@/shared/formatters';
-
-import { useBotStore } from '@/stores/ftbotwrapper';
-import { TableField } from 'bootstrap-vue-next';
-
 const botStore = useBotStore();
 enum PerformanceOptions {
   performance = 'performance',
@@ -20,7 +15,13 @@ function formatTextLen(text: string, len: number) {
   return text;
 }
 
-const performanceTable = computed<TableField[]>(() => {
+const performanceTable = computed<
+  {
+    key: string;
+    label: string;
+    formatter?: (v: unknown) => string;
+  }[]
+>(() => {
   const textLength = 17;
   const initialCol = {
     [PerformanceOptions.performance]: { key: 'pair', label: '币种' },
@@ -42,10 +43,10 @@ const performanceTable = computed<TableField[]>(() => {
   };
   return [
     initialCol[selectedOption.value],
-    { key: 'profit', label: '利润率%' },
+    { key: 'profit', label: '利润率 %' },
     {
       key: 'profit_abs',
-      label: `利润${botStore.activeBot.botState?.stake_currency}`,
+      label: `利润 ${botStore.activeBot.botState?.stake_currency}`,
       formatter: (v: unknown) => formatPrice(v as number, 5),
     },
     { key: 'count', label: '总数' },
@@ -67,8 +68,6 @@ const performanceData = computed(() => {
   }
   return [];
 });
-
-const hasAdvancedStats = computed(() => botStore.activeBot.botApiVersion >= 2.34);
 
 const options = [
   { value: PerformanceOptions.performance, text: '运行表现' },
@@ -99,23 +98,37 @@ onMounted(() => {
 <template>
   <div>
     <div class="mb-2">
-      <h3 class="me-auto d-inline">运行表现</h3>
-      <b-button class="float-end" size="sm" @click="refreshSummary">
-        <i-mdi-refresh />
-      </b-button>
+      <h3 class="me-auto text-2xl inline">运行表现</h3>
+      <Button class="float-end" severity="secondary" @click="refreshSummary">
+        <template #icon>
+          <i-mdi-refresh />
+        </template>
+      </Button>
     </div>
-    <b-form-radio-group
-      v-if="hasAdvancedStats"
+    <SelectButton
+      v-if="botStore.activeBot.botFeatures.hasAdvancedStats"
       id="order-direction"
       v-model="selectedOption"
       :options="options"
-      name="radios-btn-default"
-      size="sm"
-      buttons
-      style="min-width: 10em"
-      button-variant="outline-primary"
+      :allow-empty="false"
+      option-label="text"
+      option-value="value"
+      size="small"
       @change="refreshSummary"
-    ></b-form-radio-group>
-    <b-table class="table-sm" :items="performanceData" :fields="performanceTable"></b-table>
+    ></SelectButton>
+    <DataTable size="small" class="text-center" :value="performanceData">
+      <Column
+        v-for="field in performanceTable"
+        :key="field.key"
+        :field="field.key"
+        :header="field.label"
+      >
+        <template #body="slotProps">
+          {{
+            field.formatter ? field.formatter(slotProps.data[field.key]) : slotProps.data[field.key]
+          }}
+        </template>
+      </Column>
+    </DataTable>
   </div>
 </template>

@@ -1,52 +1,51 @@
-<template>
-  <div>
-    <div class="mb-2">
-      <label class="me-auto h3">锁定的币种</label>
-      <b-button class="float-end" size="sm" @click="botStore.activeBot.getLocks">
-        <i-mdi-refresh />
-      </b-button>
-    </div>
-    <div>
-      <b-table class="table-sm" :items="botStore.activeBot.activeLocks" :fields="tableFields">
-        <template #cell(actions)="row">
-          <b-button
-            class="btn-xs ms-1"
-            size="sm"
-            title="Delete trade"
-            @click="removePairLock(row.item as unknown as Lock)"
-          >
-            <i-mdi-delete />
-          </b-button>
-        </template>
-      </b-table>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { timestampms } from '@/shared/formatters';
-import { Lock } from '@/types';
+import type { Lock } from '@/types';
 
-import { showAlert } from '@/shared/alerts';
-import { useBotStore } from '@/stores/ftbotwrapper';
-import { TableField } from 'bootstrap-vue-next';
 const botStore = useBotStore();
 
-const tableFields: TableField[] = [
-  { key: 'pair', label: 'Pair' },
-  { key: 'lock_end_timestamp', label: 'Until', formatter: (value) => timestampms(value as number) },
-  { key: 'reason', label: 'Reason' },
-  { key: 'actions' },
-];
-
-const removePairLock = (item: Lock) => {
+function removePairLock(item: Lock) {
   console.log(item);
   if (item.id !== undefined) {
     botStore.activeBot.deleteLock(item.id);
   } else {
-    showAlert('This faiTrader version does not support deleting locks.');
+    showAlert('当前版本不支持删除锁.');
   }
-};
+}
 </script>
 
-<style scoped></style>
+<template>
+  <div>
+    <div class="mb-2">
+      <label class="me-auto text-xl">锁定的币种</label>
+      <Button class="float-end" severity="secondary" @click="botStore.activeBot.getLocks">
+        <template #icon>
+          <i-mdi-refresh />
+        </template>
+      </Button>
+    </div>
+    <div>
+      <DataTable size="small" :items="botStore.activeBot.activeLocks">
+        <Column field="pair" header="Pair"></Column>
+        <Column field="lock_end_timestamp" header="Until">
+          <template #body="{ data, field }">
+            {{ timestampms(data[field]) }}
+          </template>
+        </Column>
+        <Column field="reason" header="Reason"></Column>
+        <Column field="actions" header="Actions">
+          <template #body="{ data }">
+            <Button
+              class="btn-xs ms-1"
+              size="small"
+              severity="secondary"
+              title="Delete Lock"
+              @click="removePairLock(data as Lock)"
+            >
+              <i-mdi-delete />
+            </Button>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+  </div>
+</template>

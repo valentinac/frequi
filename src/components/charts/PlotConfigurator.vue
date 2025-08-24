@@ -1,171 +1,15 @@
-<template>
-  <div v-if="columns">
-    <b-form-group label="绘图配置名称" label-for="idPlotConfigName">
-      <plot-config-select allow-edit></plot-config-select>
-    </b-form-group>
-    <div class="col-mb-3">
-      <hr />
-      <b-form-group label="绘图目标" label-for="FieldSel">
-        <edit-value
-          v-model="selSubPlot"
-          :allow-edit="!isMainPlot"
-          allow-add
-          editable-name="plot configuration"
-          align-vertical
-          @new="addSubplot"
-          @delete="deleteSubplot"
-          @rename="renameSubplot"
-        >
-          <b-form-select id="FieldSel" v-model="selSubPlot" :options="subplots" :select-size="5">
-          </b-form-select>
-        </edit-value>
-      </b-form-group>
-    </div>
-    <hr />
-    <div>
-      <b-form-group label="图表中包含的指标" label-for="selectedIndicators">
-        <b-form-select
-          id="selectedIndicators"
-          v-model="selIndicatorName"
-          :disabled="addNewIndicator"
-          :options="usedColumns"
-          :select-size="4"
-        >
-        </b-form-select>
-      </b-form-group>
-    </div>
-    <div class="d-flex flex-row mt-1">
-      <b-button
-        variant="secondary"
-        title="从图表中移除指标"
-        size="sm"
-        :disabled="!selIndicatorName"
-        class="col"
-        @click="removeIndicator"
-      >
-        移除指标
-      </b-button>
-      <b-button
-        variant="primary"
-        title="向图表中添加新指标"
-        size="sm"
-        class="ms-1 col"
-        :disabled="addNewIndicator"
-        @click="
-          addNewIndicator = !addNewIndicator;
-          selIndicatorName = '';
-        ">添加新指标
-      </b-button>
-    </div>
-
-    <PlotIndicatorSelect
-      v-if="addNewIndicator"
-      :columns="columns"
-      class="mt-1"
-      label="选择指标添加到图表"
-      @indicator-selected="addNewIndicatorSelected"
-    />
-
-    <plot-indicator
-      v-if="selIndicatorName"
-      v-model="selIndicator"
-      class="mt-1"
-      :columns="columns"
-    />
-    <hr />
-
-    <div class="d-flex flex-row">
-      <b-button
-        class="ms-1 col"
-        variant="secondary"
-        size="sm"
-        :disabled="addNewIndicator"
-        title="重置成最后一次保存的配置"
-        @click="loadPlotConfig"
-        >重置</b-button
-      >
-
-      <!--
-        Does Resetting a config to "nothing" make sense, or can this be done via "delete / create"?
-        <b-button
-        class="ms-1 col"
-        variant="secondary"
-        size="sm"
-        :disabled="addNewIndicator"
-        title="Start with empty configuration"
-        @click="clearConfig"
-        >Reset</b-button
-      > -->
-      <b-button
-        :disabled="
-          (botStore.activeBot.isWebserverMode && botStore.activeBot.botApiVersion < 2.23) ||
-          !botStore.activeBot.isBotOnline ||
-          addNewIndicator
-        "
-        class="ms-1 col"
-        variant="secondary"
-        size="sm"
-        @click="loadPlotConfigFromStrategy"
-      >
-        从策略中
-      </b-button>
-      <b-button
-        id="showButton"
-        class="ms-1 col"
-        variant="secondary"
-        size="sm"
-        :disabled="addNewIndicator"
-        title="显示配置以便于转移到策略"
-        @click="showConfig = !showConfig"
-        >{{ showConfig ? '隐藏' : '显示' }}</b-button
-      >
-
-      <b-button
-        class="ms-1 col"
-        variant="primary"
-        size="sm"
-        data-toggle="tooltip"
-        :disabled="addNewIndicator"
-        title="保存配置"
-        @click="savePlotConfig">保存</b-button
-      >
-    </div>
-    <b-button
-      v-if="showConfig"
-      class="ms-1 mt-1"
-      variant="secondary"
-      size="sm"
-      title="从下面的文本框加载配置"
-      @click="loadConfigFromString"
-      >从字符串加载</b-button
-    >
-    <div v-if="showConfig" class="col-mb-5 ms-1 mt-2">
-      <b-form-textarea
-        id="TextArea"
-        v-model="plotConfigJson"
-        class="textArea"
-        size="sm"
-        :state="tempPlotConfigValid"
-      >
-      </b-form-textarea>
-    </div>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { showAlert } from '@/shared/alerts';
-import { IndicatorConfig, PlotConfig } from '@/types';
+import type { IndicatorConfig, PlotConfig } from '@/types';
 
-import { deepClone } from '@/shared/deepClone';
-import { useBotStore } from '@/stores/ftbotwrapper';
-import { usePlotConfigStore } from '@/stores/plotConfig';
-
-import randomColor from '@/shared/randomColor';
-
-const props = defineProps({
-  columns: { required: true, type: Array as () => string[] },
-  isVisible: { required: true, default: false, type: Boolean },
-});
+const props = withDefaults(
+  defineProps<{
+    columns: string[];
+    isVisible?: boolean;
+  }>(),
+  {
+    isVisible: false,
+  },
+);
 
 const plotStore = usePlotConfigStore();
 const botStore = useBotStore();
@@ -193,7 +37,7 @@ const subplots = computed((): string[] => {
   // Subplot keys (for selection window)
   return ['main_plot', ...Object.keys(plotStore.editablePlotConfig.subplots)];
 });
-const usedColumns = computed((): { html: string; value: string }[] => {
+const usedColumns = computed((): { text: string; value: string }[] => {
   let usedCols: string[] = [];
   if (isMainPlot.value) {
     usedCols = Object.keys(plotStore.editablePlotConfig.main_plot);
@@ -203,9 +47,7 @@ const usedColumns = computed((): { html: string; value: string }[] => {
   }
   return usedCols.map((col) => ({
     value: col,
-    html: !props.columns.includes(col)
-      ? `<span title="列名不可用">${col} <-- not available in this chart</span>`
-      : col,
+    text: !props.columns.includes(col) ? `${col} <-- 在当前图表不可用` : col,
   }));
 });
 
@@ -267,16 +109,22 @@ const plotConfigJson = computed({
 
 function removeIndicator() {
   if (isMainPlot.value) {
-    console.log(`Removing ${selIndicatorName.value} from MainPlot`);
+    console.log(`从主图中移除 ${selIndicatorName.value} 指标`);
     delete plotStore.editablePlotConfig.main_plot[selIndicatorName.value];
   } else {
-    console.log(`Removing ${selIndicatorName.value} from ${selSubPlot.value}`);
+    console.log(`从 ${selSubPlot.value} 移除 ${selIndicatorName.value} 指标`);
     delete plotStore.editablePlotConfig.subplots[selSubPlot.value][selIndicatorName.value];
   }
 
   plotStore.editablePlotConfig = { ...plotStore.editablePlotConfig };
   selIndicatorName.value = '';
 }
+
+function clickAddNewIndicator() {
+  addNewIndicator.value = !addNewIndicator.value;
+  selIndicatorName.value = '';
+}
+
 function addSubplot(newSubplotName: string) {
   plotStore.editablePlotConfig.subplots = {
     ...plotStore.editablePlotConfig.subplots,
@@ -287,7 +135,8 @@ function addSubplot(newSubplotName: string) {
 
 function deleteSubplot(subplotName: string) {
   delete plotStore.editablePlotConfig.subplots[subplotName];
-  // plotStore.editablePlotConfig.subplots = { ...plotStore.editablePlotConfig.subplots };
+  // Reassign to trigger reactivity
+  plotStore.editablePlotConfig = { ...plotStore.editablePlotConfig };
   selSubPlot.value = subplots.value[subplots.value.length - 1];
 }
 
@@ -315,7 +164,7 @@ function loadConfigFromString() {
 
 async function loadPlotConfigFromStrategy() {
   if (botStore.activeBot.isWebserverMode && !botStore.activeBot.strategy.strategy) {
-    showAlert(`没有选择策略，无法加载图表配置.`);
+    showAlert(`没有选择策略，无法加载绘图配置.`);
     return;
   }
   try {
@@ -323,9 +172,9 @@ async function loadPlotConfigFromStrategy() {
     if (botStore.activeBot.strategyPlotConfig) {
       plotStore.editablePlotConfig = botStore.activeBot.strategyPlotConfig;
     }
-  } catch (data) {
+  } catch (error) {
     //
-    showAlert('未能从策略加载图表配置.');
+    showAlert('未能从策略加载绘图配置.');
   }
 }
 
@@ -372,14 +221,202 @@ watch(
       plotStore.isEditing = false;
     }
   },
+  {
+    immediate: true,
+  },
 );
+const fromPlotTemplateVisible = ref(false);
+
+const showTagsInTooltips = computed({
+  get() {
+    return plotStore.editablePlotConfig.options?.showTags ?? true;
+  },
+  set(value: boolean) {
+    if (!plotStore.editablePlotConfig.options) {
+      plotStore.editablePlotConfig.options = {};
+    }
+    plotStore.editablePlotConfig.options.showTags = value;
+  },
+});
 </script>
 
-<style scoped lang="scss">
-.textArea {
-  min-height: 250px;
-}
+<template>
+  <div v-if="columns">
+    <label for="idPlotConfigName">绘图配置名称</label>
+    <PlotConfigSelect allow-edit></PlotConfigSelect>
+    <Divider />
+    <BaseCheckbox v-model="showTagsInTooltips" class="mb-1">在工具提示中显示标签</BaseCheckbox>
+    <Divider />
 
+    <label for="fieldSel" class="mb">目标图</label>
+    <EditValue
+      v-model="selSubPlot"
+      :allow-edit="!isMainPlot"
+      allow-add
+      editable-name="plot configuration"
+      align-vertical
+      @new="addSubplot"
+      @delete="deleteSubplot"
+      @rename="renameSubplot"
+    >
+      <ListBox
+        id="fieldSel"
+        v-model="selSubPlot"
+        :options="subplots"
+        size="small"
+        :pt="{
+          list: {
+            class: 'h-30',
+          },
+        }"
+      >
+      </ListBox>
+    </EditValue>
+    <Divider />
+    <div>
+      <label for="selectedIndicators">该图中的指标</label>
+      <ListBox
+        id="selectedIndicators"
+        v-model="selIndicatorName"
+        size="small"
+        empty-message="没有选中任何指标"
+        option-label="text"
+        option-value="value"
+        :disabled="addNewIndicator"
+        :options="usedColumns"
+        :pt="{
+          list: {
+            class: 'h-30',
+          },
+        }"
+      >
+      </ListBox>
+    </div>
+    <div class="flex flex-row mt-1 gap-1">
+      <Button
+        severity="secondary"
+        title="移除绘图指标"
+        size="small"
+        :disabled="!selIndicatorName"
+        class="col"
+        @click="removeIndicator"
+      >
+        Remove indicator
+      </Button>
+      <Button
+        severity="secondary"
+        title="从模板加载指标配置"
+        size="small"
+        @click="fromPlotTemplateVisible = !fromPlotTemplateVisible"
+      >
+        从模板加载指标
+      </Button>
+      <Button
+        severity="primary"
+        title="在绘图中添加指标"
+        size="small"
+        class="col"
+        :disabled="addNewIndicator"
+        @click="clickAddNewIndicator"
+      >
+        添加新的指标
+      </Button>
+    </div>
+
+    <PlotIndicatorSelect
+      v-if="addNewIndicator"
+      :columns="columns"
+      class="mt-1"
+      label="选中指标添加"
+      @indicator-selected="addNewIndicatorSelected"
+    />
+
+    <PlotFromTemplate v-model:visible="fromPlotTemplateVisible" :columns="columns" />
+
+    <PlotIndicator
+      v-if="selIndicatorName && !fromPlotTemplateVisible"
+      v-model="selIndicator"
+      class="mt-1"
+      :columns="columns"
+    />
+    <Divider />
+
+    <div class="flex flex-row gap-1">
+      <Button
+        severity="secondary"
+        size="small"
+        :disabled="addNewIndicator"
+        title="重置成最后一次保存的配置"
+        @click="loadPlotConfig"
+        >Reset</Button
+      >
+
+      <!--
+        Does Resetting a config to "nothing" make sense, or can this be done via "delete / create"?
+        <Button
+        class="ms-1 "
+        severity="secondary"
+        size="small"
+        :disabled="addNewIndicator"
+        title="Start with empty configuration"
+        @click="clearConfig"
+        >Reset</Button
+      > -->
+      <Button
+        :disabled="
+          (botStore.activeBot.isWebserverMode &&
+            !botStore.activeBot.botFeatures.plotConfigFromServer) ||
+          !botStore.activeBot.isBotOnline ||
+          addNewIndicator
+        "
+        severity="secondary"
+        size="small"
+        @click="loadPlotConfigFromStrategy"
+      >
+        From strategy
+      </Button>
+      <Button
+        id="showButton"
+        severity="secondary"
+        size="small"
+        :disabled="addNewIndicator"
+        title="显示配置以便于转移到策略"
+        @click="showConfig = !showConfig"
+        >{{ showConfig ? '隐藏' : '显示' }}</Button
+      >
+
+      <Button
+        severity="primary"
+        size="small"
+        data-toggle="tooltip"
+        :disabled="addNewIndicator"
+        title="保存配置"
+        @click="savePlotConfig"
+        >保存</Button>
+    </div>
+    <Button
+      v-if="showConfig"
+      class="ms-1 mt-1"
+      severity="secondary"
+      size="small"
+      title="从下面的文本框加载配置"
+      @click="loadConfigFromString"
+      >Load from String</Button
+    >
+    <div v-if="showConfig" class="w-full ms-1 mt-2">
+      <Textarea
+        id="TextArea"
+        v-model="plotConfigJson"
+        class="w-full min-h-[250px]"
+        size="small"
+        :state="tempPlotConfigValid"
+      >
+      </Textarea>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="css">
 .form-group {
   margin-bottom: 0.5rem;
 }

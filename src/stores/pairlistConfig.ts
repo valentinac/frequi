@@ -1,20 +1,14 @@
-import { defineStore } from 'pinia';
 import { useBotStore } from './ftbotwrapper';
 
-import {
+import type {
   ExchangeSelection,
-  MarginMode,
   Pairlist,
   PairlistConfig,
-  PairlistParamType,
   PairlistParamValue,
   PairlistPayloadItem,
   PairlistsPayload,
-  TradingMode,
 } from '@/types';
-
-import { showAlert } from '../shared/alerts';
-import { isNotUndefined } from '@/shared/formatters';
+import { MarginMode, PairlistParamType, TradingMode } from '@/types';
 
 export const usePairlistConfigStore = defineStore(
   'pairlistConfig',
@@ -160,13 +154,13 @@ export const usePairlistConfigStore = defineStore(
             if (wl.status === 'success') {
               whitelist.value = wl.result.whitelist;
             } else if (wl.error) {
-              showAlert(wl.error, 'danger');
+              showAlert(wl.error, 'error');
               evaluating.value = false;
             }
           }
         }, 1000);
       } catch (error) {
-        showAlert('Evaluation failed', 'danger');
+        showAlert('Evaluation failed', 'error');
         evaluating.value = false;
       }
     }
@@ -176,6 +170,8 @@ export const usePairlistConfigStore = defineStore(
         return Number(value);
       } else if (type === PairlistParamType.boolean) {
         return Boolean(value);
+      } else if (type === PairlistParamType.list) {
+        return value as string[];
       } else {
         return String(value);
       }
@@ -254,7 +250,11 @@ export const usePairlistConfigStore = defineStore(
   {
     persist: {
       key: 'ftPairlistConfig',
-      paths: ['savedConfigs', 'configName'],
+      pick: ['savedConfigs', 'configName'],
     },
   },
 );
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(usePairlistConfigStore, import.meta.hot));
+}

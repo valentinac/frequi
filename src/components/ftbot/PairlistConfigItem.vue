@@ -1,62 +1,5 @@
-<template>
-  <b-card no-body class="mb-2">
-    <template #header>
-      <div class="d-flex text-start align-items-center">
-        <div class="d-flex flex-grow-1 align-items-center">
-          <i-mdi-reorder-horizontal
-            role="button"
-            class="handle me-2 fs-4 flex-shrink-0"
-            width="24"
-            height="24"
-          />
-          <div
-            role="button"
-            class="d-flex flex-grow-1 align-items-start flex-column user-select-none"
-            @click="toggleVisible"
-          >
-            <span class="fw-bold">{{ pairlist.name }}</span>
-            <span class="text-small">{{ pairlist.description }}</span>
-          </div>
-        </div>
-        <i-mdi-close
-          role="button"
-          width="24"
-          height="24"
-          class="mx-2"
-          @click="pairlistStore.removeFromConfig(index)"
-        />
-        <i-mdi-chevron-down
-          v-if="!pairlist.showParameters"
-          :class="hasParameters && !pairlist.showParameters ? 'visible' : 'invisible'"
-          role="button"
-          class="fs-4"
-          @click="toggleVisible"
-        />
-        <i-mdi-chevron-up
-          v-if="pairlist.showParameters"
-          :class="hasParameters && pairlist.showParameters ? 'visible' : 'invisible'"
-          role="button"
-          class="fs-4"
-          @click="toggleVisible"
-        />
-      </div>
-    </template>
-    <b-collapse v-model="pairlist.showParameters">
-      <b-card-body>
-        <PairlistConfigParameter
-          v-for="(parameter, key) in pairlist.params"
-          :key="key"
-          v-model="pairlist.params[key].value"
-          :param="parameter"
-        />
-      </b-card-body>
-    </b-collapse>
-  </b-card>
-</template>
-
 <script setup lang="ts">
-import { usePairlistConfigStore } from '@/stores/pairlistConfig';
-import { Pairlist } from '@/types';
+import type { Pairlist } from '@/types';
 
 const pairlistStore = usePairlistConfigStore();
 
@@ -75,4 +18,58 @@ function toggleVisible() {
 }
 </script>
 
-<style lang="scss" scoped></style>
+<template>
+  <div class="shadow-sm rounded-sm border border-surface-300 dark:border-surface-700">
+    <div
+      class="flex w-full text-start items-center bg-surface-200 dark:bg-surface-700 p-2 border-b border-surface-300 dark:border-surface-600"
+    >
+      <div class="flex grow items-center">
+        <i-mdi-reorder-horizontal
+          role="button"
+          class="handle me-2 ms-2 flex-auto shrink"
+          width="24"
+          height="24"
+        />
+        <div
+          role="button"
+          class="flex grow items-start flex-col user-select-none"
+          @click="toggleVisible"
+        >
+          <span class="font-bold">{{ pairlist.name }}</span>
+          <span class="text-sm">{{ pairlist.description }}</span>
+        </div>
+      </div>
+      <i-mdi-close
+        role="button"
+        width="24"
+        height="24"
+        class="mx-2"
+        @click="pairlistStore.removeFromConfig(index)"
+      />
+      <i-mdi-chevron-down
+        v-if="!pairlist.showParameters"
+        :class="hasParameters && !pairlist.showParameters ? 'visible' : 'invisible'"
+        role="button"
+        class="fs-4"
+        @click="toggleVisible"
+      />
+      <i-mdi-chevron-up
+        v-if="pairlist.showParameters"
+        :class="hasParameters && pairlist.showParameters ? 'visible' : 'invisible'"
+        role="button"
+        class="fs-4"
+        @click="toggleVisible"
+      />
+    </div>
+    <Transition>
+      <div v-if="pairlist.showParameters" class="p-2">
+        <PairlistConfigParameter
+          v-for="(parameter, key) in pairlist.params"
+          :key="key"
+          v-model="pairlist.params[key].value"
+          :param="parameter"
+        />
+      </div>
+    </Transition>
+  </div>
+</template>

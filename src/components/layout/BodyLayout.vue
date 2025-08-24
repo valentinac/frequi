@@ -1,11 +1,5 @@
 <template>
-  <main>
-    <router-view />
+  <main class="dark:bg-[#010101]">
+    <RouterView />
   </main>
 </template>
-
-<style lang="scss" scoped>
-.container-main {
-  padding: 0;
-}
-</style>

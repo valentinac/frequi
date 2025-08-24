@@ -1,15 +1,5 @@
-<template>
-  <ECharts
-    v-if="trades"
-    ref="chart"
-    :option="cumProfitChartOptions"
-    :theme="settingsStore.chartTheme"
-    autoresize
-  />
-</template>
-
 <script setup lang="ts">
-import { EChartsOption } from 'echarts';
+import type { EChartsOption } from 'echarts';
 import ECharts from 'vue-echarts';
 
 import { BarChart, LineChart } from 'echarts/charts';
@@ -24,9 +14,7 @@ import {
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 
-import { dataZoomPartial } from '@/shared/charts/chartZoom';
-import { useSettingsStore } from '@/stores/settings';
-import {
+import type {
   ClosedTrade,
   CumProfitChartData,
   CumProfitData,
@@ -34,8 +22,6 @@ import {
   Trade,
 } from '@/types';
 import type { ComputedRefWithControl } from '@vueuse/core';
-
-import { formatPrice, timestampToDateString } from '@/shared/formatters';
 
 use([
   BarChart,
@@ -54,12 +40,19 @@ use([
 // Define Column labels here to avoid typos
 const CHART_PROFIT = '盈利';
 
-const props = defineProps({
-  trades: { required: true, type: Array as () => ClosedTrade[] },
-  openTrades: { required: false, type: Array as () => Trade[], default: () => [] },
-  showTitle: { default: true, type: Boolean },
-  profitColumn: { default: 'profit_abs', type: String },
-});
+const props = withDefaults(
+  defineProps<{
+    trades: ClosedTrade[];
+    openTrades?: Trade[];
+    showTitle?: boolean;
+    profitColumn?: string;
+  }>(),
+  {
+    openTrades: () => [],
+    showTitle: true,
+    profitColumn: 'profit_abs',
+  },
+);
 const settingsStore = useSettingsStore();
 const colorStore = useColorStore();
 // const botList = ref<string[]>([]);
@@ -74,15 +67,27 @@ const openProfit = computed<number>(() => {
 });
 
 const cumulativeData = computed<CumProfitChartData[]>(() => {
-  const res: CumProfitData[] = [];
+  // const res: CumProfitData[] = [];
   const resD: CumProfitDataPerDate = {};
   const closedTrades = props.trades
     .slice()
     .sort((a, b) => (a.close_timestamp > b.close_timestamp ? 1 : -1));
   let profit = 0.0;
+  let first = true;
 
   for (let i = 0, len = closedTrades.length; i < len; i += 1) {
     const trade = closedTrades[i];
+    if (first) {
+      // Start with chart with a 0 entry
+      first = false;
+      if (!resD[trade.open_timestamp]) {
+        // New timestamp
+        resD[trade.open_timestamp] = { profit, [trade.botId]: profit };
+      } else {
+        // Add to existing profit
+        resD[trade.open_timestamp][trade.botId] = profit;
+      }
+    }
 
     if (trade.close_timestamp && trade[props.profitColumn]) {
       profit += trade[props.profitColumn];
@@ -98,7 +103,7 @@ const cumulativeData = computed<CumProfitChartData[]>(() => {
           resD[trade.close_timestamp][trade.botId] = profit;
         }
       }
-      res.push({ date: trade.close_timestamp, profit, [trade.botId]: profit });
+      // res.push({ date: trade.close_timestamp, profit, [trade.botId]: profit });
     }
   }
 
@@ -210,6 +215,7 @@ const cumProfitChartOptions: ComputedRefWithControl<EChartsOption> = computedWit
     const chartOptionsLoc: EChartsOption = {
       title: {
         text: 'Cumulative Profit',
+        left: 'center',
         show: props.showTitle,
       },
       backgroundColor: 'rgba(0, 0, 0, 0)',
@@ -254,7 +260,7 @@ const cumProfitChartOptions: ComputedRefWithControl<EChartsOption> = computedWit
         },
       ],
       grid: {
-        bottom: 80,
+        ...echartsGridDefault,
       },
       dataZoom: [
         {
@@ -302,6 +308,16 @@ watch(
   },
 );
 </script>
+
+<template>
+  <ECharts
+    v-if="trades"
+    ref="chart"
+    :option="cumProfitChartOptions"
+    :theme="settingsStore.chartTheme"
+    autoresize
+  />
+</template>
 
 <style scoped>
 .echarts {

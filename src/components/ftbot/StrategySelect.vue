@@ -1,35 +1,15 @@
-<template>
-  <div>
-    <div class="w-100 d-flex">
-      <b-form-select
-        id="strategy-select"
-        v-model="locStrategy"
-        :options="botStore.activeBot.strategyList"
-      >
-      </b-form-select>
-      <div class="ms-1">
-        <b-button @click="botStore.activeBot.getStrategyList">
-          <i-mdi-refresh />
-        </b-button>
-      </div>
-    </div>
-
-    <textarea
-      v-if="showDetails && botStore.activeBot.strategy"
-      v-model="strategyCode"
-      class="w-100 h-100"
-    ></textarea>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { useBotStore } from '@/stores/ftbotwrapper';
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    showDetails?: boolean;
+  }>(),
+  {
+    showDetails: false,
+  },
+);
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
-const props = defineProps({
-  modelValue: { type: String, required: true },
-  showDetails: { default: false, required: false, type: Boolean },
-});
-const emit = defineEmits(['update:modelValue']);
 const botStore = useBotStore();
 
 const strategyCode = computed((): string => botStore.activeBot.strategy?.code);
@@ -49,3 +29,31 @@ onMounted(() => {
   }
 });
 </script>
+
+<template>
+  <div>
+    <div class="w-full flex">
+      <Select
+        id="strategy-select"
+        v-model="locStrategy"
+        filter
+        fluid
+        :options="botStore.activeBot.strategyList"
+      >
+      </Select>
+      <div class="ms-1">
+        <Button severity="secondary" variant="outlined" @click="botStore.activeBot.getStrategyList">
+          <template #icon>
+            <i-mdi-refresh />
+          </template>
+        </Button>
+      </div>
+    </div>
+
+    <textarea
+      v-if="showDetails && botStore.activeBot.strategy"
+      v-model="strategyCode"
+      class="w-full h-full"
+    ></textarea>
+  </div>
+</template>

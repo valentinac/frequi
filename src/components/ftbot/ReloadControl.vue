@@ -1,25 +1,4 @@
-<template>
-  <div class="d-flex align-items-center ms-2">
-    <b-form-checkbox
-      v-model="autoRefreshLoc"
-      class="float-end my-auto mt-1"
-      title="自动刷新"
-    ></b-form-checkbox>
-    <b-button
-      class="m-1"
-      variant="secondary"
-      size="sm"
-      title="自动刷新所有机器人"
-      @click="botStore.allRefreshFull"
-    >
-      <i-mdi-refresh />
-    </b-button>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { useBotStore } from '@/stores/ftbotwrapper';
-
 const botStore = useBotStore();
 const autoRefreshLoc = computed({
   get() {
@@ -31,4 +10,20 @@ const autoRefreshLoc = computed({
 });
 </script>
 
-<style scoped></style>
+<template>
+  <div class="flex items-center ms-2">
+    <BaseCheckbox v-model="autoRefreshLoc" size="small" title="自动刷新" />
+    <Button
+      class="m-1"
+      severity="contrast"
+      variant="outlined"
+      size="small"
+      title="立即刷新所有机器人"
+      @click="botStore.allRefreshFull"
+    >
+      <template #icon>
+        <i-mdi-refresh />
+      </template>
+    </Button>
+  </div>
+</template>

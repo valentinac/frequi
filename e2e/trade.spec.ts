@@ -27,14 +27,15 @@ test.describe('Trade', () => {
     await expect(page.locator('.drag-header', { hasText: 'Multi Pane' })).toBeInViewport();
     await expect(page.locator('.drag-header', { hasText: 'Chart' })).toBeInViewport();
     // Pairlist elements
-    await expect(page.locator('button', { hasText: 'BTC/USDT' })).toBeInViewport();
-    await expect(page.locator('button', { hasText: 'ETH/USDT' })).toBeInViewport();
+
+    await expect(page.getByRole('listitem', { name: 'BTC/USDT' })).toBeInViewport();
+    await expect(page.getByRole('listitem', { name: 'ETH/USDT' })).toBeInViewport();
 
     // // Click on Performance button and wait for response
-    await Promise.all([
-      page.waitForResponse('**/performance'),
-      page.click('button:has-text("Performance")'),
-    ]);
+
+    const performanceButton = page.locator('button[role="tab"] div[title="Performance"]');
+    await expect(performanceButton).toBeVisible();
+    await Promise.all([page.waitForResponse('**/performance'), performanceButton.click()]);
 
     // // Check visibility of Profit USDT
     await expect(page.locator('th:has-text("Profit USDT")')).toBeInViewport();
@@ -42,32 +43,31 @@ test.describe('Trade', () => {
     // // Test messageBox behavior
 
     const dialogModal = page.getByRole('dialog');
-    const modalButton = page.locator(
-      '#MsgBoxModal .modal-dialog > .modal-content > .modal-footer > .btn-secondary:has-text("Cancel")',
-    );
+    const modalCancelButton = dialogModal.getByRole('button', { name: 'Cancel' });
+
     await expect(dialogModal).not.toBeVisible();
     await expect(dialogModal).not.toBeInViewport();
 
-    await expect(modalButton).not.toBeVisible();
+    await expect(modalCancelButton).not.toBeVisible();
 
     await page.getByRole('button', { name: 'Stop Trading - Also stops' }).click();
 
     // Modal open
     await expect(dialogModal).toBeVisible();
     await expect(dialogModal).toBeInViewport();
-    await expect(modalButton).toBeInViewport();
+    await expect(modalCancelButton).toBeInViewport();
 
     // // Close modal
-    await modalButton.click();
+    await modalCancelButton.click();
 
     // // Modal closed
-    await expect(modalButton).not.toBeVisible();
-    await expect(modalButton).not.toBeInViewport();
+    await expect(modalCancelButton).not.toBeVisible();
+    await expect(modalCancelButton).not.toBeInViewport();
 
     // // Click on General tab
     const performancePair = page.locator('td:has-text("XRP/USDT")');
     await expect(performancePair).toBeInViewport();
-    await page.click('button[role="tab"]:has-text("General")');
+    await page.locator('button[role="tab"] div[title="General"]').click();
 
     // // Check visibility of elements
     await expect(performancePair).not.toBeInViewport();
@@ -77,7 +77,7 @@ test.describe('Trade', () => {
     const closedTrades = page.locator('.drag-header:has-text("Closed Trades")');
     closedTrades.scrollIntoViewIfNeeded();
     await expect(closedTrades).toBeInViewport();
-    await expect(page.locator('span:has-text("TRX/USDT")')).toBeInViewport();
+    await expect(page.getByRole('cell', { name: 'TRX/USDT' })).toBeInViewport();
     await expect(page.locator('td:has-text("8070.5")')).toBeInViewport();
 
     // Scroll to top
@@ -92,25 +92,37 @@ test.describe('Trade', () => {
     await expect(dialogModal).toBeVisible();
     await expect(dialogModal).toBeInViewport();
 
-    const modalOkButton = page.locator(
-      '#MsgBoxModal .modal-dialog > .modal-content > .modal-footer > .btn-primary:has-text("Ok")',
-    );
+    const modalOkButton = dialogModal.getByRole('button', { name: 'Ok' });
     await expect(modalOkButton).toBeVisible();
     await modalOkButton.click();
 
     await expect(page.getByText('Config reloaded successfully.')).toBeInViewport();
   });
   test('Trade page - drag and drop', async ({ page }) => {
-    await page.goto('/trade');
-
-    await page.locator('#avatar-drop').click();
-    const multiPane = page.locator('.drag-header', { hasText: 'Multi Pane' });
+    await Promise.all([
+      page.goto('/trade'),
+      // Wait for network requests
+      //  page.waitForResponse('**/ping'),
+      page.waitForResponse('**/status'),
+      page.waitForResponse('**/profit'),
+      page.waitForResponse('**/balance'),
+      //  page.waitForResponse('**/trades'),
+      page.waitForResponse('**/whitelist'),
+      page.waitForResponse('**/blacklist'),
+      page.waitForResponse('**/locks'),
+    ]);
+    // Wait for dynamic layout to settle
+    await page.waitForTimeout(1000);
+    const multiPane = await page.locator('.drag-header', { hasText: 'Multi Pane' });
 
     const multiPanebb = await multiPane.boundingBox();
 
-    await page.getByLabel('Lock layout').uncheck();
+    await page.getByRole('button', { name: 'FT' }).click();
+    await page.getByText('Lock dynamic Layout').click();
 
     const chartHeader = await page.locator('.drag-header:has-text("Chart")');
+    // Click outside of popup to ensure it's closed
+    // await chartHeader.click();
     await expect(multiPane).toBeInViewport();
     await expect(chartHeader).toBeInViewport();
 

@@ -1,24 +1,83 @@
+<script setup lang="ts">
+import type { Trade } from '@/types';
+
+const props = withDefaults(
+  defineProps<{
+    trades: Trade[];
+    backtestMode?: boolean;
+  }>(),
+  {
+    backtestMode: false,
+  },
+);
+const emit = defineEmits<{ 'trade-select': [trade: Trade] }>();
+
+const botStore = useBotStore();
+const selectedTrade = ref({} as Trade);
+const sortDescendingOrder = ref(true);
+const sortMethod = ref('openDate');
+const sortMethodOptions = [
+  { text: 'Open date', value: 'openDate' },
+  { text: 'Profit %', value: 'profit' },
+];
+
+const onTradeSelect = (trade: Trade) => {
+  selectedTrade.value = trade;
+  emit('trade-select', trade);
+};
+
+const sortedTrades = computed(() => {
+  const field: keyof Trade = sortMethod.value === 'profit' ? 'profit_ratio' : 'open_timestamp';
+  return sortDescendingOrder.value
+    ? props.trades.slice().sort((a, b) => b[field] - a[field])
+    : props.trades.slice().sort((a, b) => a[field] - b[field]);
+});
+
+const ordersVisible = ref(sortedTrades.value.map(() => false));
+
+watch(
+  () => botStore.activeBot.selectedPair,
+  () => {
+    ordersVisible.value = sortedTrades.value.map(() => false);
+  },
+);
+</script>
+
 <template>
   <div>
-    <b-list-group>
-      <b-list-group-item
-        button
-        class="d-flex flex-wrap justify-content-center align-items-center"
+    <div class="flex justify-center">
+      <span class="me-2">Sort by:</span>
+      <RadioButtonGroup v-model="sortMethod" :options="sortMethodOptions" name="radio-options">
+        <div v-for="opt in sortMethodOptions" :key="opt.value" class="flex items-center">
+          <RadioButton :id="`id-${opt.value}`" :value="opt.value" />
+          <label :for="`id-${opt.value}`">{{ opt.text }}</label>
+        </div>
+      </RadioButtonGroup>
+    </div>
+    <ul
+      class="divide-y divide-surface-300 dark:divide-surface-700 divide-solid border-x border-y rounded-sm border-surface-300 dark:border-surface-700"
+    >
+      <Button
+        severity="secondary"
+        variant="text"
+        class="w-full flex flex-wrap justify-center items-center"
         :title="'Trade Navigation'"
-        @click="sortNewestFirst = !sortNewestFirst"
-        >Trade Navigation {{ sortNewestFirst ? '&#8595;' : '&#8593;' }}
-      </b-list-group-item>
-      <b-list-group-item
+        @click="sortDescendingOrder = !sortDescendingOrder"
+        >Trade Navigation {{ sortDescendingOrder ? '&#8595;' : '&#8593;' }}
+      </Button>
+      <li
         v-for="(trade, i) in sortedTrades"
         :key="trade.open_timestamp"
-        button
-        class="d-flex flex-column py-1 pe-1 align-items-stretch"
+        class="flex flex-col py-1 px-1 items-stretch"
         :title="`${trade.pair}`"
-        :active="trade.open_timestamp === selectedTrade.open_timestamp"
+        :class="{
+          'bg-primary-100 dark:bg-primary-800 text-primary-contrast':
+            trade.open_timestamp === selectedTrade.open_timestamp,
+        }"
         @click="onTradeSelect(trade)"
       >
-        <div class="d-flex">
-          <div class="d-flex flex-column">
+        <div class="flex">
+          <div class="flex flex-col">
             <div>
               <span v-if="botStore.activeBot.botState.trading_mode !== 'spot'">{{
                 trade.is_short ? 'S-' : 'L-'
@@ -32,70 +91,33 @@
               :stake-currency="botStore.activeBot.stakeCurrency"
             />
           </div>
-          <b-button
-            size="sm"
+          <Button
+            size="small"
             class="ms-auto mt-auto"
-            variant="outline-secondary"
+            variant="outlined"
+            severity="secondary"
             @click="ordersVisible[i] = !ordersVisible[i]"
             ><i-mdi-chevron-right v-if="!ordersVisible[i]" width="24" height="24" />
             <i-mdi-chevron-down v-if="ordersVisible[i]" width="24" height="24" />
-          </b-button>
+          </Button>
         </div>
-        <b-collapse v-model="ordersVisible[i]">
-          <ul class="px-3 m-0">
-            <li
-              v-for="order in trade.orders?.filter((o) => o.order_filled_timestamp !== null)"
-              :key="order.order_timestamp"
-            >
-              {{ order.ft_order_side }} {{ order.amount }} at {{ order.safe_price }}
-            </li>
-          </ul>
-        </b-collapse>
-      </b-list-group-item>
-      <b-list-group-item v-if="trades.length === 0">没有订单显示...</b-list-group-item>
-    </b-list-group>
+        <Transition>
+          <div v-if="ordersVisible[i]">
+            <ul class="px-3 m-0 list-disc list-inside">
+              <li
+                v-for="order in trade.orders?.filter((o) => o.order_filled_timestamp !== null)"
+                :key="order.order_timestamp"
+              >
+                {{ order.ft_order_side }} {{ order.amount }} at {{ order.safe_price }}
+              </li>
+            </ul>
+          </div>
+        </Transition>
+      </li>
+      <div v-if="trades.length === 0">没有订单显示...</div>
+    </ul>
   </div>
 </template>
-
-<script setup lang="ts">
-import { Trade } from '@/types';
-
-import { useBotStore } from '@/stores/ftbotwrapper';
-
-const props = defineProps({
-  trades: { required: true, type: Array as () => Trade[] },
-  backtestMode: { required: false, default: false, type: Boolean },
-});
-const emit = defineEmits(['trade-select']);
-
-const botStore = useBotStore();
-const selectedTrade = ref({} as Trade);
-const sortNewestFirst = ref(true);
-
-const onTradeSelect = (trade: Trade) => {
-  selectedTrade.value = trade;
-  emit('trade-select', trade);
-};
-
-const sortedTrades = computed(() => {
-  return props.trades
-    .slice()
-    .sort((a, b) =>
-      sortNewestFirst.value
-        ? b.open_timestamp - a.open_timestamp
-        : a.open_timestamp - b.open_timestamp,
-    );
-});
-
-const ordersVisible = ref(sortedTrades.value.map(() => false));
-
-watch(
-  () => botStore.activeBot.selectedPair,
-  () => {
-    ordersVisible.value = sortedTrades.value.map(() => false);
-  },
-);
-</script>
 
 <style scoped>
 .list-group {

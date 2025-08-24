@@ -1,30 +1,30 @@
+<script setup lang="ts">
+import type { BacktestResultInMemory } from '@/types';
+
+withDefaults(
+  defineProps<{
+    backtestResult: BacktestResultInMemory;
+    selectedBacktestResultKey?: string;
+    canUseModify?: boolean;
+  }>(),
+  {
+    selectedBacktestResultKey: '',
+    canUseModify: false,
+  },
+);
+</script>
+
 <template>
-  <div class="d-flex flex-column me-2 text-start">
-    <div class="fw-bold">
+  <div class="flex flex-col me-2 text-start">
+    <div class="font-bold">
       {{ backtestResult.metadata.strategyName }} - {{ backtestResult.strategy.timeframe }}
     </div>
-    <div class="text-small">
+    <div class="text-sm">
       TradeCount: {{ backtestResult.strategy.total_trades }} - Profit:
       {{ formatPercent(backtestResult.strategy.profit_total) }}
     </div>
-    <div v-if="canUseModify" class="text-small" style="white-space: pre-wrap">
+    <div v-if="canUseModify" class="text-sm" style="white-space: pre-wrap">
       {{ backtestResult.metadata.notes }}
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { formatPercent } from '@/shared/formatters';
-import { BacktestResultInMemory } from '@/types';
-
-defineProps({
-  backtestResult: {
-    required: true,
-    type: Object as () => BacktestResultInMemory,
-  },
-  selectedBacktestResultKey: { required: false, default: '', type: String },
-  canUseModify: { required: false, default: false, type: Boolean },
-});
-</script>
-
-<style scoped></style>

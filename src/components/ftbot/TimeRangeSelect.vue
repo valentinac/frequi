@@ -1,49 +1,6 @@
-<template>
-  <div>
-    <div class="d-flex justify-content-center">
-      <div>
-        <label for="dateFrom">开始时间</label>
-        <Datepicker
-          id="dateFrom"
-          v-model="dateFrom"
-          :dark="settingsStore.isDarkTheme"
-          :max-date="now"
-          model-type="yyyy-MM-dd"
-          format="yyyy-MM-dd"
-          class="mt-1"
-          text-input
-          auto-apply
-          :enable-time-picker="false"
-        ></Datepicker>
-      </div>
-      <div class="ms-2">
-        <label for="dateTo">结束时间</label>
-        <Datepicker
-          v-model="dateTo"
-          :dark="settingsStore.isDarkTheme"
-          class="mt-1"
-          :max-date="tomorrow"
-          model-type="yyyy-MM-dd"
-          format="yyyy-MM-dd"
-          text-input
-          auto-apply
-          :enable-time-picker="false"
-        ></Datepicker>
-      </div>
-    </div>
-
-    <label class="mt-1 text-start">
-      Timerange: <b>{{ timeRange }}</b>
-    </label>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { dateFromString, dateStringToTimeRange, timestampToDateString } from '@/shared/formatters';
-
 import Datepicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import { useSettingsStore } from '@/stores/settings';
 
 const settingsStore = useSettingsStore();
 
@@ -53,10 +10,13 @@ tomorrow.setDate(tomorrow.getDate() + 1);
 const dateFrom = ref<string>('');
 const dateTo = ref<string>('');
 
-const props = defineProps({
-  modelValue: { required: true, type: String },
-});
-const emit = defineEmits(['update:modelValue']);
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+  }>(),
+  {},
+);
+const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 const timeRange = computed(() => {
   if (dateFrom.value !== '' || dateTo.value !== '') {
@@ -105,4 +65,42 @@ onMounted(() => {
 });
 </script>
 
-<style scoped></style>
+<template>
+  <div>
+    <div class="flex justify-content-center">
+      <div>
+        <label for="dateFrom">开始日期</label>
+        <Datepicker
+          id="dateFrom"
+          v-model="dateFrom"
+          :dark="settingsStore.isDarkTheme"
+          :max-date="now"
+          model-type="yyyy-MM-dd"
+          format="yyyy-MM-dd"
+          class="mt-1"
+          text-input
+          auto-apply
+          :enable-time-picker="false"
+        ></Datepicker>
+      </div>
+      <div class="ms-2">
+        <label for="dateTo">结束日期</label>
+        <Datepicker
+          v-model="dateTo"
+          :dark="settingsStore.isDarkTheme"
+          class="mt-1"
+          :max-date="tomorrow"
+          model-type="yyyy-MM-dd"
+          format="yyyy-MM-dd"
+          text-input
+          auto-apply
+          :enable-time-picker="false"
+        ></Datepicker>
+      </div>
+    </div>
+
+    <label class="mt-1 text-start">
+      时间范围: <b>{{ timeRange }}</b>
+    </label>
+  </div>
+</template>

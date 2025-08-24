@@ -1,19 +1,8 @@
-<template>
-  <ECharts
-    v-if="trades.length > 0"
-    :option="hourlyChartOptions"
-    autoresize
-    :theme="settingsStore.chartTheme"
-  />
-</template>
-
 <script setup lang="ts">
 import ECharts from 'vue-echarts';
-import { useSettingsStore } from '@/stores/settings';
 
-import { Trade } from '@/types';
-import { timestampHour } from '@/shared/formatters';
-import { EChartsOption } from 'echarts';
+import type { Trade } from '@/types';
+import type { EChartsOption } from 'echarts';
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -26,7 +15,6 @@ import {
   VisualMapComponent,
   VisualMapPiecewiseComponent,
 } from 'echarts/components';
-import { useColorStore } from '@/stores/colors';
 
 use([
   BarChart,
@@ -45,10 +33,15 @@ use([
 const CHART_PROFIT = 'Profit %';
 const CHART_TRADE_COUNT = 'Trade Count';
 
-const props = defineProps({
-  trades: { required: true, type: Array as () => Trade[] },
-  showTitle: { default: true, type: Boolean },
-});
+const props = withDefaults(
+  defineProps<{
+    trades: Trade[];
+    showTitle?: boolean;
+  }>(),
+  {
+    showTitle: true,
+  },
+);
 const settingsStore = useSettingsStore();
 const colorStore = useColorStore();
 
@@ -154,6 +147,15 @@ const hourlyChartOptions = computed((): EChartsOption => {
   };
 });
 </script>
+
+<template>
+  <ECharts
+    v-if="trades.length > 0"
+    :option="hourlyChartOptions"
+    autoresize
+    :theme="settingsStore.chartTheme"
+  />
+</template>
 
 <style scoped>
 .echarts {

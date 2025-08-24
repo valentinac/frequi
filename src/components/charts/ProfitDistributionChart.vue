@@ -1,32 +1,6 @@
-<template>
-  <div class="d-flex flex-column h-100 position-relative">
-    <div class="flex-grow-1">
-      <ECharts v-if="trades" :option="chartOptions" autoresize :theme="settingsStore.chartTheme" />
-    </div>
-    <b-form-group
-      class="z-2"
-      :class="showTitle ? 'ms-5 ps-5' : 'position-absolute'"
-      label="Bins"
-      style="width: 33%; min-width: 12rem"
-      label-for="input-bins"
-      label-cols="6"
-      content-cols="6"
-      size="sm"
-    >
-      <b-form-select
-        id="input-bins"
-        v-model="settingsStore.profitDistributionBins"
-        size="sm"
-        class="mt-1"
-        :options="binOptions"
-      ></b-form-select>
-    </b-form-group>
-  </div>
-</template>
-
 <script setup lang="ts">
 import ECharts from 'vue-echarts';
-import { EChartsOption } from 'echarts';
+import type { EChartsOption } from 'echarts';
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -39,9 +13,7 @@ import {
   TooltipComponent,
 } from 'echarts/components';
 
-import { ClosedTrade } from '@/types';
-import { binData } from '@/shared/charts/binCount';
-import { useSettingsStore } from '@/stores/settings';
+import type { ClosedTrade } from '@/types';
 
 use([
   BarChart,
@@ -58,10 +30,15 @@ use([
 // Define Column labels here to avoid typos
 const CHART_PROFIT = 'Trade count';
 
-const props = defineProps({
-  trades: { required: true, type: Array as () => ClosedTrade[] },
-  showTitle: { default: true, type: Boolean },
-});
+const props = withDefaults(
+  defineProps<{
+    trades: ClosedTrade[];
+    showTitle?: boolean;
+  }>(),
+  {
+    showTitle: true,
+  },
+);
 const settingsStore = useSettingsStore();
 // registerTransform(ecStat.transform.histogram);
 // console.log(profits);
@@ -83,6 +60,7 @@ const chartOptions = computed((): EChartsOption => {
   const chartOptionsLoc: EChartsOption = {
     title: {
       text: 'Profit distribution',
+      left: 'center',
       show: props.showTitle,
     },
     backgroundColor: 'rgba(0, 0, 0, 0)',
@@ -122,9 +100,10 @@ const chartOptions = computed((): EChartsOption => {
         position: 'left',
       },
     ],
-    // grid: {
-    // bottom: 80,
-    // },
+    grid: {
+      ...echartsGridDefault,
+      bottom: 50,
+    },
 
     series: [
       {
@@ -143,6 +122,31 @@ const chartOptions = computed((): EChartsOption => {
   return chartOptionsLoc;
 });
 </script>
+
+<template>
+  <div class="flex flex-col h-full relative">
+    <div class="grow mb-2">
+      <ECharts v-if="trades" :option="chartOptions" autoresize :theme="settingsStore.chartTheme" />
+    </div>
+    <div
+      class="z-2 absolute fixed-top flex items-center gap-10 ms-2"
+      :class="{ 'mx-auto': showTitle }"
+      label-for="input-bins"
+      size="sm"
+    >
+      <label for="input-bins">Bins</label>
+      <Select
+        id="input-bins"
+        v-model="settingsStore.profitDistributionBins"
+        size="small"
+        option-label="text"
+        option-value="value"
+        class="mt-1"
+        :options="binOptions"
+      ></Select>
+    </div>
+  </div>
+</template>
 
 <style scoped>
 .echarts {

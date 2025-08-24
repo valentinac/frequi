@@ -1,5 +1,3 @@
-import { defineStore } from 'pinia';
-
 export const useBtStore = defineStore('btStore', {
   state: () => {
     return {
@@ -7,9 +5,9 @@ export const useBtStore = defineStore('btStore', {
       selectedTimeframe: '',
       selectedDetailTimeframe: '',
       timerange: '',
-      maxOpenTrades: '',
-      stakeAmount: '',
-      startingCapital: '',
+      maxOpenTrades: null as number | null,
+      stakeAmount: null as number | null,
+      startingCapital: null as number | null,
       allowCache: true,
       enableProtections: false,
       stakeAmountUnlimited: false,
@@ -25,3 +23,7 @@ export const useBtStore = defineStore('btStore', {
   },
   actions: {},
 });
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useBtStore, import.meta.hot));
+}

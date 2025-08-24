@@ -1,3 +1,17 @@
+<script setup lang="ts">
+withDefaults(
+  defineProps<{
+    allowEdit?: boolean;
+    editableName?: string;
+  }>(),
+  {
+    allowEdit: false,
+    editableName: 'plot configuration',
+  },
+);
+const plotStore = usePlotConfigStore();
+</script>
+
 <template>
   <EditValue
     v-model="plotStore.plotConfigName"
@@ -10,31 +24,14 @@
     @new="plotStore.newPlotConfig"
     @duplicate="plotStore.duplicatePlotConfig"
   >
-    <b-form-select
+    <Select
       id="plotConfigSelect"
       v-model="plotStore.plotConfigName"
       :options="plotStore.availablePlotConfigNames"
-      size="sm"
+      class="w-full text-left"
+      size="small"
       @update:model-value="plotStore.plotConfigChanged"
     >
-    </b-form-select>
+    </Select>
   </EditValue>
 </template>
-
-<script setup lang="ts">
-import { usePlotConfigStore } from '@/stores/plotConfig';
-
-defineProps({
-  allowEdit: {
-    type: Boolean,
-    default: false,
-  },
-  editableName: {
-    type: String,
-    default: 'plot configuration',
-  },
-});
-const plotStore = usePlotConfigStore();
-</script>
-
-<style scoped></style>

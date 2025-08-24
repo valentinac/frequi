@@ -1,11 +1,7 @@
-import { defineStore } from 'pinia';
-
-import { getCurrentTheme, getTheme } from '@/shared/themes';
 import axios from 'axios';
-import { UiVersion } from '@/types';
+import { TimeSummaryCols, TimeSummaryOptions } from '@/types';
+import type { ThemeName, UiVersion } from '@/types';
 import { FtWsMessageTypes } from '@/types/wsMessageTypes';
-
-const STORE_UI_SETTINGS = 'ftUISettings';
 
 export enum OpenTradeVizOptions {
   showPill = 'showPill',
@@ -27,24 +23,27 @@ export const useSettingsStore = defineStore('uiSettings', {
       openTradesInTitle: OpenTradeVizOptions.showPill as string,
       timezone: 'UTC',
       backgroundSync: true,
-      currentTheme: getCurrentTheme(),
+      currentTheme: 'dark' as ThemeName,
       _uiVersion: 'dev',
       useHeikinAshiCandles: false,
+      showMarkArea: true,
       useReducedPairCalls: true,
       notifications: notificationDefaults,
       profitDistributionBins: 20,
       confirmDialog: true,
+      chartLabelSide: 'right' as 'left' | 'right',
+      chartDefaultCandleCount: 250,
+      timeProfitPeriod: TimeSummaryOptions.daily,
+      timeProfitPreference: TimeSummaryCols.abs_profit,
+      multiPaneButtonsShowText: false,
+      backtestAdditionalMetrics: ['profit_factor', 'expectancy'] as string[],
     };
   },
   getters: {
     isDarkTheme(state) {
-      const theme = getTheme(state.currentTheme);
-      if (theme) {
-        return theme.dark;
-      }
-      return true;
+      return ['dark', 'bootstrap_dark'].includes(state.currentTheme);
     },
-    chartTheme(): string {
+    chartTheme(): 'dark' | 'light' {
       return this.isDarkTheme ? 'dark' : 'light';
     },
     uiVersion(state) {
@@ -65,6 +64,10 @@ export const useSettingsStore = defineStore('uiSettings', {
     },
   },
   persist: {
-    key: STORE_UI_SETTINGS,
+    key: 'ftUISettings',
   },
 });
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useSettingsStore, import.meta.hot));
+}

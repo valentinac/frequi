@@ -1,15 +1,6 @@
-<template>
-  <ECharts
-    v-if="trades.length > 0"
-    :option="chartOptions"
-    autoresize
-    :theme="settingsStore.chartTheme"
-  />
-</template>
-
 <script setup lang="ts">
 import ECharts from 'vue-echarts';
-import { EChartsOption } from 'echarts';
+import type { EChartsOption } from 'echarts';
 
 import { use } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
@@ -24,12 +15,7 @@ import {
   VisualMapPiecewiseComponent,
 } from 'echarts/components';
 
-import { ClosedTrade } from '@/types';
-import { useSettingsStore } from '@/stores/settings';
-
-import { timestampms } from '@/shared/formatters';
-import { dataZoomPartial } from '@/shared/charts/chartZoom';
-import { useColorStore } from '@/stores/colors';
+import type { ClosedTrade } from '@/types';
 
 use([
   BarChart,
@@ -50,10 +36,15 @@ use([
 const CHART_PROFIT = 'Profit %';
 const CHART_COLOR = '#9be0a8';
 
-const props = defineProps({
-  trades: { required: true, type: Array as () => ClosedTrade[] },
-  showTitle: { default: true, type: Boolean },
-});
+const props = withDefaults(
+  defineProps<{
+    trades: ClosedTrade[];
+    showTitle?: boolean;
+  }>(),
+  {
+    showTitle: true,
+  },
+);
 const settingsStore = useSettingsStore();
 const colorStore = useColorStore();
 const chartData = computed(() => {
@@ -83,6 +74,7 @@ const chartOptions = computed((): EChartsOption => {
   return {
     title: {
       text: 'Trades log',
+      left: 'center',
       show: props.showTitle,
     },
     backgroundColor: 'rgba(0, 0, 0, 0)',
@@ -104,7 +96,7 @@ const chartOptions = computed((): EChartsOption => {
       },
     },
     xAxis: {
-      type: 'value',
+      type: 'category',
       show: false,
     },
     yAxis: [
@@ -120,7 +112,8 @@ const chartOptions = computed((): EChartsOption => {
       },
     ],
     grid: {
-      bottom: 80,
+      ...echartsGridDefault,
+      left: 80,
     },
     dataZoom: [
       {
@@ -155,7 +148,6 @@ const chartOptions = computed((): EChartsOption => {
       {
         type: 'bar',
         name: CHART_PROFIT,
-        barGap: '0%',
         barCategoryGap: '0%',
         animation: false,
         label: {
@@ -179,6 +171,15 @@ const chartOptions = computed((): EChartsOption => {
   };
 });
 </script>
+
+<template>
+  <ECharts
+    v-if="trades.length > 0"
+    :option="chartOptions"
+    autoresize
+    :theme="settingsStore.chartTheme"
+  />
+</template>
 
 <style scoped>
 .echarts {

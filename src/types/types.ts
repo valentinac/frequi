@@ -1,3 +1,5 @@
+export type ThemeName = 'bootstrap' | 'bootstrap_dark' | 'light' | 'dark';
+
 export enum OrderSides {
   long = 'long',
   short = 'short',
@@ -189,6 +191,15 @@ export interface FreqAIModelListResult {
   freqaimodels: string[];
 }
 
+export interface HyperoptLossObj {
+  name: string;
+  description: string;
+}
+
+export interface HyperoptLossListResponse {
+  loss_functions: HyperoptLossObj[];
+}
+
 export interface SysInfoResponse {
   cpu_pct: number[];
   ram_pct: number;
@@ -223,4 +234,10 @@ export enum LoadingStatus {
   loading,
   success,
   error,
+}
+
+export interface ExchangeSelectPayload {
+  exchange?: string;
+  trading_mode?: TradingMode;
+  margin_mode?: MarginMode;
 }

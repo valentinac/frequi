@@ -1,20 +1,27 @@
 <script setup lang="ts">
-import { Trade } from '@/types';
+import type { Trade } from '@/types';
+import type { BotFeatures } from '@/types/features';
+import Popover from 'primevue/popover';
 
-defineProps({
-  trade: { type: Object as () => Trade, required: true },
-  id: { type: Number, required: true },
-  botApiVersion: { type: Number, required: true },
-  enableForceEntry: { type: Boolean, default: false },
-});
-const emit = defineEmits([
-  'forceExit',
-  'forceExitPartial',
-  'cancelOpenOrder',
-  'reloadTrade',
-  'deleteTrade',
-  'forceEntry',
-]);
+withDefaults(
+  defineProps<{
+    trade: Trade;
+    id: number;
+    botFeatures: BotFeatures;
+    enableForceEntry?: boolean;
+  }>(),
+  {
+    enableForceEntry: false,
+  },
+);
+const emit = defineEmits<{
+  forceExit: [trade: Trade, type?: string];
+  forceExitPartial: [trade: Trade];
+  cancelOpenOrder: [trade: Trade];
+  reloadTrade: [trade: Trade];
+  deleteTrade: [trade: Trade];
+  forceEntry: [trade: Trade];
+}>();
 const popoverOpen = ref(false);
 
 function forceExitHandler(item: Trade, ordertype: string | undefined = undefined) {
@@ -41,30 +48,31 @@ function handleForceEntry(item: Trade) {
   popoverOpen.value = false;
   emit('forceEntry', item);
 }
+const popover = ref<InstanceType<typeof Popover> | null>(null);
 </script>
 
 <template>
   <div>
-    <b-button
+    <Button
       :id="`btn-actions-${id}`"
       class="btn-xs"
-      size="sm"
+      size="small"
+      severity="secondary"
       title="操作"
-      @click="popoverOpen = !popoverOpen"
+      @click="popover?.toggle"
     >
       <i-mdi-gesture-tap />
-    </b-button>
-    <BPopover
-      teleport-to="body"
+    </Button>
+    <Popover
+      ref="popover"
       :target="`btn-actions-${id}`"
-      :title="`对${trade.pair}的操作`"
+      :title="`对 ${trade.pair} 币的操作`"
       triggers="manual"
-      :show="popoverOpen"
       placement="left"
     >
-      <trade-actions
+      <TradeActions
         :trade="trade"
-        :bot-api-version="botApiVersion"
+        :bot-features="botFeatures"
         :enable-force-entry="enableForceEntry"
         @force-exit="forceExitHandler"
         @force-exit-partial="forceExitPartialHandler"
@@ -73,11 +81,15 @@ function handleForceEntry(item: Trade) {
         @reload-trade="handleReloadTrade"
         @force-entry="handleForceEntry"
       />
-      <b-button class="mt-1 w-100 text-start" size="sm" @click="popoverOpen = false">
-        <i-mdi-cancel class="me-1" />关闭操作菜单
-      </b-button>
-    </BPopover>
+      <Button
+        class="mt-1 w-full text-start"
+        size="small"
+        severity="secondary"
+        label="关闭操作菜单"
+        @click="popover?.hide"
+      >
+        <template #icon><i-mdi-cancel class="me-1" /></template>
+      </Button>
+    </Popover>
   </div>
 </template>
-
-<style scoped></style>

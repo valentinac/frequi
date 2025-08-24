@@ -1,64 +1,37 @@
-<template>
-  <div>
-    <div class="d-flex flex-col flex-xl-row justify-content-between mt-1">
-      <b-form-group class="col flex-grow-1" label="Type" label-for="plotTypeSelector">
-        <b-form-select
-          id="plotTypeSelector"
-          v-model="graphType"
-          size="sm"
-          :options="availableGraphTypes"
-        >
-        </b-form-select>
-      </b-form-group>
-      <b-form-group label="Color" label-for="colsel" size="sm" class="ms-xl-1 col">
-        <b-input-group>
-          <template #prepend>
-            <b-form-input
-              v-model="selColor"
-              type="color"
-              size="sm"
-              class="p-0"
-              style="max-width: 29px"
-            ></b-form-input>
-          </template>
-          <b-form-input id="colsel" v-model="selColor" size="sm" class="flex-grow-1">
-          </b-form-input>
-          <template #append>
-            <b-button variant="primary" size="sm" @click="newColor">
-              <i-mdi-dice-multiple />
-            </b-button>
-          </template>
-        </b-input-group>
-      </b-form-group>
-    </div>
-    <PlotIndicatorSelect
-      v-if="graphType === ChartType.line"
-      v-model="fillTo"
-      :columns="columns"
-      class="mt-1"
-      label="Area chart - Fill to (leave empty for line chart)"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
-import { ChartType, IndicatorConfig } from '@/types';
-import randomColor from '@/shared/randomColor';
+import type { ChartTypeString, IndicatorConfig } from '@/types';
+import { ChartType } from '@/types';
 
-import { watchDebounced } from '@vueuse/core';
+const props = withDefaults(
+  defineProps<{
+    modelValue: Record<string, IndicatorConfig>;
+    columns: string[];
+  }>(),
+  {},
+);
 
-const props = defineProps({
-  modelValue: { required: true, type: Object as () => Record<string, IndicatorConfig> },
-  columns: { required: true, type: Array as () => string[] },
+const emit = defineEmits<{ 'update:modelValue': [value: IndicatorConfig] }>();
+
+const selColor_ = ref(randomColor());
+const selColor = computed({
+  get: () => selColor_.value,
+  set: (val) => {
+    if (
+      !val.startsWith('#') &&
+      (val.length === 3 || val.length === 6) &&
+      /^[0-9a-fA-F]+$/.test(val)
+    ) {
+      val = `#${val}`;
+    }
+    selColor_.value = val;
+  },
 });
-
-const emit = defineEmits(['update:modelValue']);
-const selColor = ref(randomColor());
-const graphType = ref<ChartType>(ChartType.line);
-const availableGraphTypes = ref(Object.keys(ChartType));
+const graphType = ref<ChartTypeString>(ChartType.line);
+const availableGraphTypes = ref<ChartTypeString[]>(Object.keys(ChartType) as ChartTypeString[]);
 const selAvailableIndicator = ref('');
 const cancelled = ref(false);
 const fillTo = ref('');
+const scatterSymbolSize = ref(3);
 
 function newColor() {
   selColor.value = randomColor();
@@ -74,6 +47,9 @@ const combinedIndicator = computed<IndicatorConfig>(() => {
   };
   if (fillTo.value && graphType.value === ChartType.line) {
     val.fill_to = fillTo.value;
+  }
+  if (graphType.value == ChartType.scatter) {
+    val.scatterSymbolSize = scatterSymbolSize.value;
   }
   return {
     [selAvailableIndicator.value]: val,
@@ -102,7 +78,7 @@ watch(
 );
 
 watchDebounced(
-  [selColor, graphType, fillTo],
+  [selColor, graphType, fillTo, scatterSymbolSize],
   () => {
     emitIndicator();
   },
@@ -112,4 +88,55 @@ watchDebounced(
 );
 </script>
 
-<style scoped></style>
+<template>
+  <div>
+    <div class="flex flex-col lg:flex-row justify-between mt-1">
+      <div class="flex flex-col w-full">
+        <label for="plotTypeSelector" class="form-label">Type</label>
+        <Select
+          id="plotTypeSelector"
+          v-model="graphType"
+          class="text-left"
+          size="small"
+          :options="availableGraphTypes"
+        >
+        </Select>
+      </div>
+      <div class="flex flex-col w-full">
+        <label for="selAvailableIndicator" class="colsel">Color</label>
+        <InputGroup>
+          <InputGroupAddon class="p-0!">
+            <ColorPicker v-model="selColor" type="color" class="m-auto"></ColorPicker>
+          </InputGroupAddon>
+          <InputText id="colsel" v-model="selColor" size="small" class="grow"> </InputText>
+          <InputGroupAddon>
+            <Button severity="primary" size="small" @click="newColor">
+              <template #icon>
+                <i-mdi-dice-multiple />
+              </template>
+            </Button>
+          </InputGroupAddon>
+        </InputGroup>
+      </div>
+    </div>
+    <PlotIndicatorSelect
+      v-if="graphType === ChartType.line"
+      v-model="fillTo"
+      :columns="columns"
+      class="mt-1"
+      label="Area chart - Fill to (leave empty for line chart)"
+    />
+    <div v-if="graphType === ChartType.scatter" class="flex flex-col mt-2 gap-1 items-center">
+      <label for="scatterSymbolSize" class="text-nowrap">Scatter symbol size</label>
+      <InputNumber
+        id="scatterSymbolSize"
+        v-model="scatterSymbolSize"
+        :min="0"
+        show-buttons
+        size="small"
+        button-layout="horizontal"
+        class="text-center w-full"
+      />
+    </div>
+  </div>
+</template>

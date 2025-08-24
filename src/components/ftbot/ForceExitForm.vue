@@ -1,73 +1,15 @@
-<template>
-  <div>
-    <b-modal
-      id="forceexit-modal"
-      v-model="model"
-      title="对订单进行减仓"
-      @show="resetForm"
-      @hidden="resetForm"
-      @ok="handleEntry"
-    >
-      <form ref="form" @submit.stop.prevent="handleSubmit">
-        <p>
-          <span>进行中订单编号 #{{ trade.trade_id }} {{ trade.pair }}.</span>
-          <br />
-          <span>当前持仓 {{ trade.amount }} {{ trade.base_currency }}</span>
-        </p>
-        <b-form-group
-          :label="`* 卖出总额 ${trade.base_currency} [可不填]`"
-          label-for="stake-input"
-          invalid-feedback="Amount must be empty or a positive number"
-          :state="amount !== undefined && amount > 0"
-        >
-          <b-form-input
-            id="stake-input"
-            v-model="amount"
-            type="number"
-            step="0.000001"
-          ></b-form-input>
-          <b-form-input
-            id="stake-input"
-            v-model="amount"
-            type="range"
-            step="0.000001"
-            min="0"
-            :max="trade.amount"
-          ></b-form-input>
-        </b-form-group>
-
-        <b-form-group
-          label="* 订单类型"
-          label-for="ordertype-input"
-          invalid-feedback="OrderType"
-          :state="ordertype !== undefined"
-        >
-          <b-form-select
-            v-model="ordertype"
-            class="ms-2"
-            :options="['市价单', '限价单']"
-            style="min-width: 7em"
-            size="sm"
-          >
-          </b-form-select>
-        </b-form-group>
-      </form>
-    </b-modal>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { useBotStore } from '@/stores/ftbotwrapper';
-import { ForceSellPayload, Trade } from '@/types';
+import type { ForceSellPayload, Trade } from '@/types';
+import { ref, computed } from 'vue';
+import { refDebounced } from '@vueuse/core';
 
-const props = defineProps({
-  trade: {
-    type: Object as () => Trade,
-    required: true,
-  },
-  modelValue: { required: true, default: false, type: Boolean },
-});
-const emit = defineEmits(['update:modelValue']);
+const props = defineProps<{
+  trade: Trade;
+  stakeCurrencyDecimals: number;
+}>();
+
+const model = defineModel<boolean>();
+
 const botStore = useBotStore();
 
 const form = ref<HTMLFormElement>();
@@ -80,16 +22,7 @@ const checkFormValidity = () => {
   return valid;
 };
 
-const model = computed({
-  get() {
-    return props.modelValue;
-  },
-  set(value: boolean) {
-    emit('update:modelValue', value);
-  },
-});
-
-function handleSubmit() {
+async function handleSubmit() {
   // Exit when the form isn't valid
   if (!checkFormValidity()) {
     return;
@@ -103,6 +36,7 @@ function handleSubmit() {
   if (amount.value) {
     payload.amount = amount.value;
   }
+  await nextTick();
   botStore.activeBot.forceexit(payload);
   model.value = false;
 }
@@ -115,8 +49,81 @@ function resetForm() {
     'limit';
 }
 
-function handleEntry() {
+function handleExit() {
   // Trigger submit handler
   handleSubmit();
 }
+
+const amountDebounced = refDebounced(amount, 250, { maxWait: 500 });
+
+const amountInBase = computed<string>(() => {
+  return amountDebounced.value && props.trade.current_rate
+    ? `~${formatPriceCurrency(amountDebounced.value * props.trade.current_rate, props.trade.quote_currency || '', props.stakeCurrencyDecimals)} (Estimated value) `
+    : '';
+});
+const orderTypeOptions = [
+  { value: 'market', text: '市价单' },
+  { value: 'limit', text: '限价单' },
+];
 </script>
+
+<template>
+  <Dialog
+    v-model:visible="model"
+    :header="`手动减仓`"
+    modal
+    @show="resetForm"
+    @hide="resetForm"
+  >
+    <form ref="form" class="space-y-4 md:min-w-[32rem]" @submit.prevent="handleSubmit">
+      <div class="mb-4">
+        <p class="mb-2">
+          <span>当前订单编号 #{{ trade.trade_id }} {{ trade.pair }}.</span>
+          <br />
+          <span>当前持仓 {{ trade.amount }} {{ trade.base_currency }}</span>
+        </p>
+      </div>
+
+      <div>
+        <label for="stake-input" class="block font-medium mb-1">
+          减仓总额 {{ trade.base_currency }} [可不填]
+          <span class="text-sm italic ml-1">{{ amountInBase }}</span>
+        </label>
+        <div class="space-y-2">
+          <InputNumber
+            id="stake-input"
+            v-model="amount"
+            :min="0"
+            :max="trade.amount"
+            :use-grouping="false"
+            :step="0.000001"
+            :max-fraction-digits="8"
+            class="w-full"
+            show-buttons
+          />
+          <Slider v-model="amount" :min="0" :max="trade.amount" :step="0.000001" class="w-full" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">*订单类型</label>
+        <SelectButton
+          v-model="ordertype"
+          :options="orderTypeOptions"
+          :allow-empty="false"
+          option-label="text"
+          option-value="value"
+          size="small"
+          class="w-full"
+        />
+      </div>
+    </form>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button severity="secondary" size="small" @click="model = false">取消</Button>
+        <Button severity="primary" size="small" @click="handleExit">执行减仓</Button>
+      </div>
+    </template>
+  </Dialog>
+</template>

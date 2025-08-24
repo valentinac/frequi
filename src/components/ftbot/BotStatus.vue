@@ -1,9 +1,13 @@
+<script setup lang="ts">
+const botStore = useBotStore();
+</script>
+
 <template>
-  <div v-if="botStore.activeBot.botState">
-    <p>
+  <div v-if="botStore.activeBot.botState" class="p-4">
+    <p class="mb-4">
       当前的版本 <strong>{{ botStore.activeBot.version }}</strong>
     </p>
-    <p>
+    <p class="mb-4">
       最多同时运行
       <strong>
         {{ botStore.activeBot.botState.max_open_trades }}x{{
@@ -14,45 +18,45 @@
       <br/>运行交易所
       <strong>{{ botStore.activeBot.botState.exchange }}</strong> 的
       <strong>{{ botStore.activeBot.botState.trading_mode || 'spot' }}</strong> 市场, 执行
-      <strong>{{ botStore.activeBot.botState.strategy }}</strong> 策略.
+      Strategy <strong>{{ botStore.activeBot.botState.strategy }}</strong> 策略..
     </p>
-    <p v-if="'stoploss_on_exchange' in botStore.activeBot.botState">
+    <p v-if="'stoploss_on_exchange' in botStore.activeBot.botState" class="mb-4">
       交易所止损
       <strong>{{
-        botStore.activeBot.botState.stoploss_on_exchange ? '可用' : '不可用'
+        botStore.activeBot.botState.stoploss_on_exchange ? 'enabled' : 'disabled'
       }}</strong
       >.
     </p>
-    <p>
+    <p class="mb-4">
       当前状态 <strong>{{ botStore.activeBot.botState.state }}</strong
       >,
-      <strong>是否可开仓/加仓: {{ botStore.activeBot.botState.force_entry_enable }}</strong>
+      <strong>force entry: {{ botStore.activeBot.botState.force_entry_enable }}</strong>
     </p>
     <p>
       <strong>{{ botStore.activeBot.botState.dry_run ? '模拟账户' : '实盘' }}</strong>
     </p>
-    <hr />
-    <p>
+    <Divider />
+    <p class="mb-4">
       平均利润率 {{ formatPercent(botStore.activeBot.profit.profit_all_ratio_mean) }} (&sum;
-      {{ formatPercent(botStore.activeBot.profit.profit_all_ratio_sum) }}) 在
+      {{ formatPercent(botStore.activeBot.profit.profit_all_ratio_sum) }}) 实盘
       {{ botStore.activeBot.profit.trade_count }} 订单中, 平均持仓时长
       {{ botStore.activeBot.profit.avg_duration }}. 最佳币种:
       {{ botStore.activeBot.profit.best_pair }}.
     </p>
-    <p v-if="botStore.activeBot.profit.first_trade_timestamp">
-      <span v-if="botStore.activeBot.profit.bot_start_timestamp" class="d-block">
+    <p v-if="botStore.activeBot.profit.first_trade_timestamp" class="mb-4">
+      <span v-if="botStore.activeBot.profit.bot_start_timestamp" class="block">
         机器人开启时间:
         <strong>
           <DateTimeTZ :date="botStore.activeBot.profit.bot_start_timestamp" show-timezone />
         </strong>
       </span>
-      <span class="d-block">
+      <span class="block">
         第一笔交易开仓于:
         <strong>
           <DateTimeTZ :date="botStore.activeBot.profit.first_trade_timestamp" show-timezone />
         </strong>
       </span>
-      <span class="d-block">
+      <span class="block">
         最后一笔交易开仓于:
         <strong>
           <DateTimeTZ :date="botStore.activeBot.profit.latest_trade_timestamp" show-timezone />
@@ -60,11 +64,11 @@
       </span>
     </p>
     <p>
-      <span v-if="botStore.activeBot.profit.profit_factor" class="d-block">
+      <span v-if="botStore.activeBot.profit.profit_factor" class="block">
         盈利因子:
         {{ botStore.activeBot.profit.profit_factor.toFixed(2) }}
       </span>
-      <span v-if="botStore.activeBot.profit.trading_volume" class="d-block">
+      <span v-if="botStore.activeBot.profit.trading_volume" class="block mb-4">
         交易量:
         {{
           formatPriceCurrency(
@@ -75,19 +79,12 @@
         }}
       </span>
     </p>
+    <Divider />
     <BotProfit
       class="mx-1"
-      :profit="botStore.activeBot.profit"
+      :profit-all="botStore.activeBot.profitAll"
       :stake-currency="botStore.activeBot.botState.stake_currency ?? 'USDT'"
       :stake-currency-decimals="botStore.activeBot.botState.stake_currency_decimals ?? 3"
     />
   </div>
 </template>
-
-<script setup lang="ts">
-import { formatPercent, formatPriceCurrency } from '@/shared/formatters';
-
-import { useBotStore } from '@/stores/ftbotwrapper';
-
-const botStore = useBotStore();
-</script>

@@ -1,69 +1,73 @@
-import { useApi } from '@/shared/apiService';
-import { useUserService } from '@/shared/userService';
-import {
-  BotState,
-  Trade,
-  PlotConfig,
-  StrategyResult,
-  BalanceInterface,
-  TimeSummaryReturnValue,
-  LockResponse,
-  ProfitInterface,
-  BacktestResult,
-  BacktestSteps,
-  LogLine,
-  SysInfoResponse,
-  LoadingStatus,
-  BacktestHistoryEntry,
-  RunModes,
-  TimeSummaryPayload,
-  BlacklistResponse,
-  WhitelistResponse,
-  StrategyListResult,
+import type {
+  AllProfitStats,
   AvailablePairPayload,
   AvailablePairResult,
-  PairHistoryPayload,
-  PairCandlePayload,
-  StatusResponse,
-  ForceSellPayload,
-  DeleteTradeResponse,
-  BacktestStatus,
-  BacktestPayload,
-  BlacklistPayload,
-  ForceEnterPayload,
-  TradeResponse,
-  ClosedTrade,
-  BotDescriptor,
-  BgTaskStarted,
   BackgroundTaskStatus,
+  BacktestHistoryEntry,
+  BacktestMarketChange,
+  BacktestMetadataPatch,
+  BacktestMetadataWithStrategyName,
+  BacktestPayload,
+  BacktestResult,
+  BacktestResultInMemory,
+  BacktestResultUpdate,
+  BacktestStatus,
+  BalanceInterface,
+  BgTaskStarted,
+  BlacklistPayload,
+  BlacklistResponse,
+  BotDescriptor,
+  BotFeatures,
+  BotState,
+  ClosedTrade,
+  DeleteTradeResponse,
+  DownloadDataPayload,
+  EntryStats,
   Exchange,
   ExchangeListResult,
+  ExitStats,
+  ForceEnterPayload,
+  ForceSellPayload,
   FreqAIModelListResult,
+  HyperoptLossListResponse,
+  HyperoptLossObj,
+  LockResponse,
+  LogLine,
+  Markets,
+  MarketsPayload,
+  MixTagStats,
+  PairCandlePayload,
+  PairHistory,
+  PairHistoryPayload,
+  PairIntervalTuple,
   PairlistEvalResponse,
   PairlistsPayload,
   PairlistsResponse,
-  BacktestResultInMemory,
-  BacktestMetadataWithStrategyName,
-  BacktestMetadataPatch,
-  BacktestResultUpdate,
-  TimeSummaryOptions,
   PerformanceEntry,
-  MixTagStats,
-  ExitStats,
-  EntryStats,
-  PairIntervalTuple,
-  PairHistory,
+  PlotConfig,
+  ProfitStats,
+  StatusResponse,
+  StrategyListResult,
+  StrategyResult,
+  SysInfoResponse,
+  TimeSummaryPayload,
+  TimeSummaryReturnValue,
+  Trade,
+  TradeResponse,
+  WhitelistResponse,
 } from '@/types';
-import axios, { AxiosResponse } from 'axios';
-import { defineStore } from 'pinia';
-import { useAlertForBot } from '../shared/alerts';
+import { BacktestSteps, LoadingStatus, RunModes, TimeSummaryOptions } from '@/types';
+import type { FTWsMessage } from '@/types/wsMessageTypes';
+import { FtWsMessageTypes } from '@/types/wsMessageTypes';
 import { useWebSocket } from '@vueuse/core';
-import { FTWsMessage, FtWsMessageTypes } from '@/types/wsMessageTypes';
-import { showNotification } from '@/shared/notifications';
+import type { AxiosResponse } from 'axios';
+import axios from 'axios';
+
+import { evaluateFeatures } from '@/utils/features';
 
 export function createBotSubStore(botId: string, botName: string) {
-  const userService = useUserService(botId);
-  const { api } = useApi(userService, botId);
+  const loginInfo = useLoginInfo(botId);
+  const { api } = useApi(loginInfo, botId);
 
   const { showAlert } = useAlertForBot(botName);
 
@@ -90,7 +94,7 @@ export function createBotSubStore(botId: string, botName: string) {
         mixTagStats: [] as MixTagStats[],
         whitelist: [] as string[],
         blacklist: [] as string[],
-        profit: {} as ProfitInterface,
+        profitAll: {} as AllProfitStats,
         botState: {} as BotState,
         balance: {} as BalanceInterface,
         dailyStats: {} as TimeSummaryReturnValue,
@@ -102,7 +106,7 @@ export function createBotSubStore(botId: string, botName: string) {
         plotPair: '',
         // TODO: type me
         candleData: {},
-        candleDataStatus: LoadingStatus.loading,
+        candleDataStatus: LoadingStatus.not_loaded,
         // TODO: type me
         history: {},
         historyStatus: LoadingStatus.not_loaded,
@@ -110,6 +114,7 @@ export function createBotSubStore(botId: string, botName: string) {
         strategyPlotConfig: undefined as PlotConfig | undefined,
         strategyList: [] as string[],
         freqaiModelList: [] as string[],
+        hyperoptLossList: [] as HyperoptLossObj[],
         exchangeList: [] as Exchange[],
         strategy: {} as StrategyResult,
         pairlist: [] as string[],
@@ -120,7 +125,6 @@ export function createBotSubStore(botId: string, botName: string) {
         backtestProgress: 0.0,
         backtestStep: BacktestSteps.none,
         backtestTradeCount: 0,
-        backtestResult: undefined as BacktestResult | undefined,
         selectedBacktestResultKey: '',
         backtestHistory: {} as Record<string, BacktestResultInMemory>,
         backtestHistoryList: [] as BacktestHistoryEntry[],
@@ -130,12 +134,17 @@ export function createBotSubStore(botId: string, botName: string) {
     getters: {
       version: (state) => state.botState?.version || state.versionState,
       botApiVersion: (state) => state.botState?.api_version || 1.0,
+      botFeatures(): BotFeatures {
+        return evaluateFeatures(this.botState, this.botApiVersion);
+      },
       stakeCurrency: (state) => state.botState?.stake_currency || '',
       stakeCurrencyDecimals: (state) => state.botState?.stake_currency_decimals || 3,
       canRunBacktest: (state) => state.botState?.runmode === RunModes.WEBSERVER,
       isWebserverMode: (state) => state.botState?.runmode === RunModes.WEBSERVER,
       selectedBacktestResult: (state) =>
         state.backtestHistory[state.selectedBacktestResultKey]?.strategy || {},
+      selectedBacktestMetadata: (state) =>
+        state.backtestHistory[state.selectedBacktestResultKey]?.metadata || {},
       shortAllowed: (state) => state.botState?.short_allowed || false,
       openTradeCount: (state) => state.openTrades.length,
       isTrading: (state) =>
@@ -172,10 +181,11 @@ export function createBotSubStore(botId: string, botName: string) {
       botName: (state) => state.botState?.bot_name || 'faiTrader',
       allTrades: (state) => [...state.openTrades, ...state.trades] as Trade[],
       activeLocks: (state) => state.currentLocks?.locks || [],
+      profit: (state): ProfitStats => state.profitAll.all,
     },
     actions: {
       botAdded() {
-        this.autoRefresh = userService.getAutoRefresh();
+        this.autoRefresh = loginInfo.autoRefresh.value;
       },
       async fetchPing() {
         try {
@@ -190,13 +200,13 @@ export function createBotSubStore(botId: string, botName: string) {
         }
       },
       logout() {
-        userService.logout();
+        loginInfo.logout();
       },
       getLoginInfo() {
-        return userService.getLoginInfo();
+        return loginInfo.getLoginInfo();
       },
       updateBot(updatedBotInfo: Partial<BotDescriptor>) {
-        userService.updateBot(updatedBotInfo);
+        loginInfo.updateBot(updatedBotInfo);
       },
       setAutoRefresh(newRefreshValue: boolean) {
         this.autoRefresh = newRefreshValue;
@@ -206,7 +216,7 @@ export function createBotSubStore(botId: string, botName: string) {
           this.refreshFrequent();
           this.refreshSlow(true);
         }
-        userService.setAutoRefresh(newRefreshValue);
+        loginInfo.autoRefresh.value = newRefreshValue;
       },
       setIsBotOnline(isBotOnline: boolean) {
         if (!this.isBotOnline && isBotOnline && this.isBotLoggedIn) {
@@ -344,7 +354,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
           }
-          showAlert(`Failed to delete lock ${lockid}`, 'danger');
+          showAlert(`Failed to delete lock ${lockid}`, 'error');
           return Promise.reject(error);
         }
       },
@@ -354,7 +364,7 @@ export function createBotSubStore(botId: string, botName: string) {
           try {
             let result: PairHistory | null = null;
             const settingsStore = useSettingsStore();
-            if (this.botApiVersion >= 2.35 && settingsStore.useReducedPairCalls) {
+            if (this.botFeatures.reducedPairCalls && settingsStore.useReducedPairCalls) {
               // Modern approach, allowing filtering of columns
               const { data } = await api.post<PairCandlePayload, AxiosResponse<PairHistory>>(
                 '/pair_candles',
@@ -400,7 +410,7 @@ export function createBotSubStore(botId: string, botName: string) {
             let result: PairHistory | null = null;
             const loadingTimer = setTimeout(() => (this.historyTakesLonger = true), 10000);
             const timeout = 2 * 60 * 1000; // in MS
-            if (this.botApiVersion >= 2.35 && settingsStore.useReducedPairCalls) {
+            if (this.botFeatures.reducedPairCalls && settingsStore.useReducedPairCalls) {
               // Modern approach, allowing filtering of columns
               const { data } = await api.post<PairHistoryPayload, AxiosResponse<PairHistory>>(
                 '/pair_history',
@@ -416,22 +426,21 @@ export function createBotSubStore(botId: string, botName: string) {
               result = data;
             }
             clearTimeout(loadingTimer);
-            this.history = {
-              [`${payload.pair}__${payload.timeframe}`]: {
-                pair: payload.pair,
-                timeframe: payload.timeframe,
-                timerange: payload.timerange,
-                data: result,
-              },
+            this.history[`${payload.pair}__${payload.timeframe}`] = {
+              pair: payload.pair,
+              timeframe: payload.timeframe,
+              timerange: payload.timerange,
+              data: result,
             };
             this.historyStatus = LoadingStatus.success;
+            return;
           } catch (err) {
             console.error(err);
             this.historyStatus = LoadingStatus.error;
             if (axios.isAxiosError(err)) {
               console.error(err.response);
               const errMsg = err.response?.data?.detail ?? 'Error fetching history';
-              showAlert(errMsg, 'danger');
+              showAlert(errMsg, 'error');
             }
 
             return new Promise((resolve, reject) => {
@@ -493,7 +502,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
             const errMsg = error.response?.data?.detail ?? 'Error fetching history';
-            showAlert(errMsg, 'warning');
+            showAlert(errMsg, 'warn');
           }
           return Promise.reject(error);
         }
@@ -502,6 +511,17 @@ export function createBotSubStore(botId: string, botName: string) {
         try {
           const { data } = await api.get<FreqAIModelListResult>('/freqaimodels');
           this.freqaiModelList = data.freqaimodels;
+          return Promise.resolve(data);
+        } catch (error) {
+          console.error(error);
+          return Promise.reject(error);
+        }
+      },
+      async getHyperoptLossList() {
+        try {
+          // Only available starting with 2.40
+          const { data } = await api.get<HyperoptLossListResponse>('/hyperopt-loss');
+          this.hyperoptLossList = data.loss_functions;
           return Promise.resolve(data);
         } catch (error) {
           console.error(error);
@@ -526,6 +546,17 @@ export function createBotSubStore(botId: string, botName: string) {
           // result is of type AvailablePairResult
           this.pairlist = data.pairs;
           this.pairlistWithTimeframe = data.pair_interval;
+          return Promise.resolve(data);
+        } catch (error) {
+          console.error(error);
+          return Promise.reject(error);
+        }
+      },
+      async getMarkets(payload: MarketsPayload) {
+        try {
+          const { data } = await api.get<Markets>(`/markets`, {
+            params: { ...payload },
+          });
           return Promise.resolve(data);
         } catch (error) {
           console.error(error);
@@ -596,11 +627,16 @@ export function createBotSubStore(botId: string, botName: string) {
       },
       async getProfit() {
         try {
-          const { data } = await api.get('/profit');
-          this.profit = data;
+          if (this.botFeatures.hasProfitAll) {
+            const { data } = await api.get<AllProfitStats>('/profit_all');
+            this.profitAll = data;
+            return Promise.resolve(data);
+          }
+          // Fallback to old profit endpoint
+          const { data } = await api.get<ProfitStats>('/profit');
+          this.profitAll['all'] = data;
           return Promise.resolve(data);
         } catch (error) {
-          console.error(error);
           return Promise.reject(error);
         }
       },
@@ -639,9 +675,12 @@ export function createBotSubStore(botId: string, botName: string) {
           this.botState = data;
           this.botStatusAvailable = true;
           this.startWebSocket();
+          if (this.isWebserverMode) {
+            const { recoverBgJobs } = useBackgroundJob();
+            recoverBgJobs(api, showAlert).then();
+          }
           return Promise.resolve(data);
         } catch (error) {
-          console.error(error);
           return Promise.reject(error);
         }
       },
@@ -694,6 +733,20 @@ export function createBotSubStore(botId: string, botName: string) {
           return Promise.reject(error);
         }
       },
+      async startDataDownload(payload: DownloadDataPayload) {
+        try {
+          const { data } = await api.post<DownloadDataPayload, AxiosResponse<BgTaskStarted>>(
+            '/download_data',
+            payload,
+          );
+          const { startBgJob } = useBackgroundJob();
+          startBgJob(api, showAlert, data.job_id, 'download_data');
+          return Promise.resolve(data);
+        } catch (error) {
+          console.error(error);
+          return Promise.reject(error);
+        }
+      },
       // // Post methods
       // // TODO: Migrate calls to API to a seperate module unrelated to pinia?
       async startBot() {
@@ -709,7 +762,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
           }
-          showAlert('Error starting bot.', 'danger');
+          showAlert('Error starting bot.', 'error');
           return Promise.reject(error);
         }
       },
@@ -725,7 +778,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
           }
-          showAlert('Error stopping bot.', 'danger');
+          showAlert('Error stopping bot.', 'error');
           return Promise.reject(error);
         }
       },
@@ -741,7 +794,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
           }
-          showAlert('Error calling stopbuy.', 'danger');
+          showAlert('Error calling stopbuy.', 'error');
           return Promise.reject(error);
         }
       },
@@ -758,7 +811,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
           }
-          showAlert('Error reloading.', 'danger');
+          showAlert('Error reloading.', 'error');
           return Promise.reject(error);
         }
       },
@@ -771,7 +824,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
           }
-          showAlert(`Failed to delete trade ${tradeid}`, 'danger');
+          showAlert(`Failed to delete trade ${tradeid}`, 'error');
           return Promise.reject(error);
         }
       },
@@ -786,7 +839,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
           }
-          showAlert(`Failed to cancel open order ${tradeid}`, 'danger');
+          showAlert(`Failed to cancel open order ${tradeid}`, 'error');
           return Promise.reject(error);
         }
       },
@@ -798,7 +851,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
           }
-          showAlert(`Failed to reload trade ${tradeid}`, 'danger');
+          showAlert(`Failed to reload trade ${tradeid}`, 'error');
           return Promise.reject(error);
         }
       },
@@ -822,7 +875,7 @@ export function createBotSubStore(botId: string, botName: string) {
           if (axios.isAxiosError(error)) {
             console.error(error.response);
           }
-          showAlert(`Failed to create exit order for ${payload.tradeid}`, 'danger');
+          showAlert(`Failed to create exit order for ${payload.tradeid}`, 'error');
           return Promise.reject(error);
         }
       },
@@ -840,7 +893,7 @@ export function createBotSubStore(botId: string, botName: string) {
           } catch (error) {
             if (axios.isAxiosError(error)) {
               console.error(error.response);
-              showAlert(`Error occured entering: '${error.response?.data?.error}'`, 'danger');
+              showAlert(`Error occured entering: '${error.response?.data?.error}'`, 'error');
             }
             return Promise.reject(error);
           }
@@ -864,7 +917,7 @@ export function createBotSubStore(botId: string, botName: string) {
               Object.keys(errors).forEach((pair) => {
                 showAlert(
                   `Error while adding pair ${pair} to Blacklist: ${errors[pair].error_msg}`,
-                  'danger',
+                  'error',
                 );
               });
             } else {
@@ -876,7 +929,7 @@ export function createBotSubStore(botId: string, botName: string) {
               console.error(error.response);
               showAlert(
                 `Error occured while adding pairs to Blacklist: '${error.response?.data?.error}'`,
-                'danger',
+                'error',
               );
             }
 
@@ -910,7 +963,7 @@ export function createBotSubStore(botId: string, botName: string) {
               Object.keys(errors).forEach((pair) => {
                 showAlert(
                   `Error while removing pair ${pair} from Blacklist: ${errors[pair].error_msg}`,
-                  'danger',
+                  'error',
                 );
               });
             } else {
@@ -922,7 +975,7 @@ export function createBotSubStore(botId: string, botName: string) {
               console.error(error.response);
               showAlert(
                 `Error occured while removing pairs from Blacklist: '${error.response?.data?.error}'`,
-                'danger',
+                'error',
               );
             }
 
@@ -953,7 +1006,7 @@ export function createBotSubStore(botId: string, botName: string) {
           this.updateBacktestResult(data.backtest_result);
         }
         if (data.status === 'error') {
-          showAlert(`Backtest failed: ${data.status_msg}.`, 'danger');
+          showAlert(`Backtest failed: ${data.status_msg}.`, 'error');
         }
       },
       async removeBacktest() {
@@ -986,7 +1039,6 @@ export function createBotSubStore(botId: string, botName: string) {
         this.backtestHistoryList = data;
       },
       updateBacktestResult(backtestResult: BacktestResult) {
-        this.backtestResult = backtestResult;
         Object.entries(backtestResult.strategy).forEach(([key, strat]) => {
           const metadata: BacktestMetadataWithStrategyName = {
             ...(backtestResult.metadata[key] ?? {}),
@@ -1023,6 +1075,20 @@ export function createBotSubStore(botId: string, botName: string) {
             `/backtest/history/${btHistoryEntry.filename}`,
           );
           this.backtestHistoryList = data;
+        } catch (err) {
+          console.error(err);
+          return Promise.reject(err);
+        }
+      },
+      async getBacktestMarketChange() {
+        if (!this.selectedBacktestMetadata.filename) {
+          return Promise.reject('No backtest selected');
+        }
+        try {
+          const { data } = await api.get<BacktestMarketChange>(
+            `/backtest/history/${this.selectedBacktestMetadata.filename}/market_change`,
+          );
+          return data;
         } catch (err) {
           console.error(err);
           return Promise.reject(err);
@@ -1075,7 +1141,7 @@ export function createBotSubStore(botId: string, botName: string) {
         const msg: FTWsMessage = JSON.parse(event.data);
         switch (msg.type) {
           case FtWsMessageTypes.exception:
-            showAlert(`WSException: ${msg.data}`, 'danger');
+            showAlert(`WSException: ${msg.data}`, 'error');
             break;
           case FtWsMessageTypes.whitelist:
             this.whitelist = msg.data;
@@ -1107,14 +1173,14 @@ export function createBotSubStore(botId: string, botName: string) {
         if (
           this.websocketStarted === true ||
           this.botStatusAvailable === false ||
-          this.botApiVersion < 2.2 ||
+          !this.botFeatures.websocketConnection ||
           this.isWebserverMode === true
         ) {
           return;
         }
         const { send, close } = useWebSocket(
           // 'ws://localhost:8080/api/v1/message/ws?token=testtoken',
-          `${userService.getBaseWsUrl()}/message/ws?token=${userService.getAccessToken()}`,
+          `${loginInfo.baseWsUrl.value}/message/ws?token=${loginInfo.accessToken.value}`,
           {
             autoReconnect: {
               delay: 10000,
@@ -1143,7 +1209,7 @@ export function createBotSubStore(botId: string, botName: string) {
                   FtWsMessageTypes.exitCancel,
                   /*'new_candle' /*'analyzed_df'*/
                 ];
-                if (this.botApiVersion >= 2.21) {
+                if (this.botFeatures.websocketNewCandle) {
                   subscriptions.push(FtWsMessageTypes.newCandle);
                 }
 
@@ -1166,6 +1232,10 @@ export function createBotSubStore(botId: string, botName: string) {
       },
     },
   });
+
+  if (import.meta.hot) {
+    import.meta.hot.accept(acceptHMRUpdate(useBotStore, import.meta.hot));
+  }
 
   return useBotStore();
 }

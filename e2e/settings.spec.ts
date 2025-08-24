@@ -11,19 +11,19 @@ test.describe('Settings', () => {
       // page.waitForResponse('**/ShowConf'),
     ]);
     // await expect(page.locator('li', { hasText: 'Online' })).toBeInViewport();
-    await expect(page.locator('h1', { hasText: 'Welcome to the faiTrader UI' })).toBeInViewport({
+    await expect(page.locator('h1', { hasText: '欢迎使用 FaiQuants UI' })).toBeInViewport({
       timeout: 5000,
     });
+    await expect(page.getByRole('button', { name: 'FT' })).toBeVisible();
+    await page.getByRole('button', { name: 'FT' }).click();
+    await page.getByRole('menuitem', { name: 'Settings' }).click();
 
-    await page
-      .locator('[id=avatar-drop]')
-      .isVisible()
-      .then(() => page.locator('[id=avatar-drop]').click());
-    await page.locator('.dropdown-menu > * > [href="/settings"]').click();
-    await expect(page.locator(':text("faiTrader Settings")')).toBeVisible();
+    await expect(page.getByText('FaiQuantsUI Settings')).toBeVisible();
+    await expect(page.url()).toBe('http://localhost:3000/settings');
 
     // Switch option in the settings.
-    await page.locator('select').first().selectOption('asTitle');
+    await page.getByRole('combobox', { name: 'Show pill in icon' }).click();
+    await page.getByRole('option', { name: 'Show in title' }).click();
 
     const settings = await page.evaluate(() =>
       JSON.parse(window.localStorage.getItem('ftUISettings') || '{}'),

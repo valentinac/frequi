@@ -1,82 +1,5 @@
-<template>
-  <b-table
-    ref="tradesTable"
-    small
-    hover
-    show-empty
-    primary-key="botId"
-    :items="tableItems"
-    :fields="tableFields"
-  >
-    <template #cell(botName)="{ item, value }">
-      <div class="d-flex flex-row">
-        <b-form-checkbox
-          v-if="item.botId && botStore.botCount > 1"
-          v-model="
-            botStore.botStores[(item as unknown as ComparisonTableItems).botId ?? ''].isSelected
-          "
-          title="Show this bot in Dashboard"
-          >{{ value }}</b-form-checkbox
-        >
-        <b-form-checkbox
-          v-if="!item.botId && botStore.botCount > 1"
-          v-model="allToggled"
-          title="Toggle all bots"
-          >{{ value }}</b-form-checkbox
-        >
-        <span v-if="botStore.botCount <= 1">{{ value }}</span>
-      </div>
-    </template>
-    <template #cell(profitOpen)="{ item }">
-      <profit-pill
-        v-if="item.profitOpen && item.botId != 'Summary'"
-        :profit-ratio="(item as unknown as ComparisonTableItems).profitOpenRatio"
-        :profit-abs="(item as unknown as ComparisonTableItems).profitOpen"
-        :profit-desc="`Total Profit (Open and realized) ${formatPercent(
-          (item as unknown as ComparisonTableItems).profitOpenRatio ?? 0.0,
-        )}`"
-        :stake-currency="(item as unknown as ComparisonTableItems).stakeCurrency"
-      />
-    </template>
-    <template #cell(profitClosed)="{ item }">
-      <profit-pill
-        v-if="item.profitClosed && item.botId != 'Summary'"
-        :profit-ratio="(item as unknown as ComparisonTableItems).profitClosedRatio"
-        :profit-abs="(item as unknown as ComparisonTableItems).profitClosed"
-        :stake-currency="(item as unknown as ComparisonTableItems).stakeCurrency"
-      />
-    </template>
-
-    <template #cell(balance)="{ item }">
-      <div v-if="item.balance">
-        <span :title="(item as unknown as ComparisonTableItems).stakeCurrency"
-          >{{
-            formatPrice(
-              (item as unknown as ComparisonTableItems).balance ?? 0,
-              (item as unknown as ComparisonTableItems).stakeCurrencyDecimals,
-            )
-          }}
-        </span>
-        <span class="text-small">{{
-          ` ${item.stakeCurrency}${item.isDryRun ? ' (dry)' : ''}`
-        }}</span>
-      </div>
-    </template>
-    <template #cell(winVsLoss)="{ item }">
-      <div v-if="item.losses !== undefined">
-        <span class="text-profit">{{ item.wins }}</span> /
-        <span class="text-loss">{{ item.losses }}</span>
-      </div>
-    </template>
-  </b-table>
-</template>
-
 <script setup lang="ts">
-import { formatPrice, formatPercent } from '@/shared/formatters';
-
-import { useBotStore } from '@/stores/ftbotwrapper';
-import { ProfitInterface, ComparisonTableItems } from '@/types';
-import { TableField, TableItem } from 'bootstrap-vue-next';
+import type { ProfitStats, ComparisonTableItems } from '@/types';
 
 const botStore = useBotStore();
 
@@ -89,16 +12,7 @@ const allToggled = computed<boolean>({
   },
 });
 
-const tableFields: TableField[] = [
-  { key: 'botName', label: '机器人名字' },
-  { key: 'trades', label: '交易订单' },
-  { key: 'profitOpen', label: '未结算盈亏' },
-  { key: 'profitClosed', label: '已结算盈亏' },
-  { key: 'balance', label: '可用余额' },
-  { key: 'winVsLoss', label: '止盈/止损' },
-];
-
-const tableItems = computed<TableItem[]>(() => {
+const tableItems = computed<ComparisonTableItems[]>(() => {
   const val: ComparisonTableItems[] = [];
   const summary: ComparisonTableItems = {
     botId: undefined,
@@ -112,7 +26,7 @@ const tableItems = computed<TableItem[]>(() => {
     losses: 0,
   };
 
-  Object.entries(botStore.allProfit).forEach(([k, v]: [k: string, v: ProfitInterface]) => {
+  Object.entries(botStore.allProfit).forEach(([k, v]: [k: string, v: ProfitStats]) => {
     const allStakes = botStore.allOpenTrades[k].reduce((a, b) => a + b.stake_amount, 0);
     const profitOpenRatio =
       botStore.allOpenTrades[k].reduce(
@@ -141,6 +55,7 @@ const tableItems = computed<TableItem[]>(() => {
       balance: botStore.allBalance[k]?.total_bot ?? botStore.allBalance[k]?.total,
       stakeCurrencyDecimals: botStore.allBotState[k]?.stake_currency_decimals || 3,
       isDryRun: botStore.allBotState[k]?.dry_run,
+      isOnline: botStore.botStores[k]?.isBotOnline,
     });
     if (v.profit_closed_coin !== undefined) {
       if (botStore.botStores[k].isSelected) {
@@ -157,8 +72,96 @@ const tableItems = computed<TableItem[]>(() => {
     }
   });
   val.push(summary);
-  return val as unknown as TableItem[];
+  return val;
 });
 </script>
 
-<style scoped></style>
+<template>
+  <DataTable size="small" :value="tableItems">
+    <Column field="botName" header="机器人名字">
+      <template #body="{ data, field }">
+        <div class="flex flex-row justify-between items-center">
+          <div>
+            <BaseCheckbox
+              v-if="data.botId && botStore.botCount > 1"
+              v-model="
+                botStore.botStores[(data as unknown as ComparisonTableItems).botId ?? ''].isSelected
+              "
+              title="在仪表板中显示该机器人"
+              >{{ data[field] }}</BaseCheckbox
+            >
+            <BaseCheckbox
+              v-if="!data.botId && botStore.botCount > 1"
+              v-model="allToggled"
+              title="切换所有机器人"
+              class="font-bold"
+              >{{ data[field] }}</BaseCheckbox
+            >
+            <span v-if="botStore.botCount <= 1">{{ data[field] }}</span>
+          </div>
+          <Badge
+            v-if="data.isOnline && data.isDryRun"
+            class="items-center bg-green-800 text-slate-200"
+            severity="success"
+            >Dry</Badge
+          >
+          <Badge v-if="data.isOnline && !data.isDryRun" class="items-center" severity="warning"
+            >Live</Badge
+          >
+          <Badge v-if="data.isOnline === false" class="items-center" severity="secondary"
+            >Offline</Badge
+          >
+        </div>
+      </template>
+    </Column>
+    <Column field="trades" header="交易订单"> </Column>
+    <Column header="未结算盈亏">
+      <template #body="{ data }">
+        <ProfitPill
+          v-if="data.profitOpen && data.botId != 'Summary'"
+          :profit-ratio="(data as unknown as ComparisonTableItems).profitOpenRatio"
+          :profit-abs="(data as unknown as ComparisonTableItems).profitOpen"
+          :profit-desc="`浮盈总额 (Open and realized) ${formatPercent(
+            (data as ComparisonTableItems).profitOpenRatio ?? 0.0,
+          )}`"
+          :stake-currency="(data as ComparisonTableItems).stakeCurrency"
+        />
+      </template>
+    </Column>
+    <Column header="已结算盈亏">
+      <template #body="{ data }">
+        <ProfitPill
+          v-if="data.profitClosed && data.botId != 'Summary'"
+          :profit-ratio="(data as ComparisonTableItems).profitClosedRatio"
+          :profit-abs="(data as ComparisonTableItems).profitClosed"
+          :stake-currency="(data as unknown as ComparisonTableItems).stakeCurrency"
+        />
+      </template>
+    </Column>
+    <Column field="balance" header="可用余额">
+      <template #body="{ data }">
+        <div v-if="data.balance">
+          <span :title="(data as ComparisonTableItems).stakeCurrency"
+            >{{
+              formatPrice(
+                (data as ComparisonTableItems).balance ?? 0,
+                (data as ComparisonTableItems).stakeCurrencyDecimals,
+              )
+            }}
+          </span>
+          <span class="text-sm">{{
+            ` ${data.stakeCurrency}${data.isDryRun ? ' (dry)' : ''}`
+          }}</span>
+        </div>
+      </template>
+    </Column>
+    <Column field="winVsLoss" header="盈利/亏损">
+      <template #body="{ data }">
+        <div v-if="data.losses !== undefined">
+          <span class="text-profit">{{ data.wins }}</span> /
+          <span class="text-loss">{{ data.losses }}</span>
+        </div>
+      </template>
+    </Column>
+  </DataTable>
+</template>

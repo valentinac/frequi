@@ -1,5 +1,5 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
-import { initBots, useBotStore } from '@/stores/ftbotwrapper';
+import type { RouteRecordRaw } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -71,6 +71,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/pairlist_config',
     name: 'Pairlist Configuration',
     component: () => import('@/views/PairlistConfigView.vue'),
+  },
+  {
+    path: '/download_data',
+    name: 'Download Data',
+    component: () => import('@/views/DownloadDataView.vue'),
   },
   {
     path: '/(.*)*',

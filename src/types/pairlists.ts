@@ -1,6 +1,6 @@
-import { BackgroundTaskResult } from './backgroundtasks';
-import { WhitelistResponse } from './blacklist';
-import { MarginMode, TradingMode } from './types';
+import type { BackgroundTaskResult } from './backgroundtasks';
+import type { WhitelistResponse } from './blacklist';
+import type { ExchangeSelectPayload } from './types';
 
 export interface PairlistsResponse {
   pairlists: Pairlist[];
@@ -30,9 +30,10 @@ export enum PairlistParamType {
   number = 'number',
   boolean = 'boolean',
   option = 'option',
+  list = 'list',
 }
 
-export type PairlistParamValue = string | number | boolean;
+export type PairlistParamValue = string | number | boolean | string[];
 
 interface PairlistParameterBase {
   description: string;
@@ -65,22 +66,26 @@ export interface OptionPairlistParameter extends PairlistParameterBase {
   default: string;
 }
 
+export interface ListPairlistParameter extends PairlistParameterBase {
+  type: PairlistParamType.list;
+  value?: string[];
+  default: string;
+}
+
 export type PairlistParameter =
   | StringPairlistParameter
   | NumberPairlistParameter
   | BooleanPairlistParameter
-  | OptionPairlistParameter;
+  | OptionPairlistParameter
+  | ListPairlistParameter;
 
 export interface PairlistPayloadItem {
   method: string;
   [key: string]: string | number | boolean;
 }
 
-export interface PairlistsPayload {
+export interface PairlistsPayload extends ExchangeSelectPayload {
   pairlists: PairlistPayloadItem[];
   blacklist: string[];
   stake_currency: string;
-  exchange?: string;
-  trading_mode?: TradingMode;
-  margin_mode?: MarginMode;
 }

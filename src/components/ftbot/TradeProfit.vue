@@ -1,26 +1,17 @@
-<template>
-  <ProfitPill
-    :profit-ratio="profitRatio"
-    :profit-abs="profitAbs"
-    :profit-desc="profitDesc"
-    :stake-currency="trade.quote_currency || 'USDT'"
-  />
-</template>
-
 <script setup lang="ts">
-import { formatPercent, timestampms } from '@/shared/formatters';
-import { Trade } from '@/types';
+import type { Trade } from '@/types';
 
 type modes = 'default' | 'total' | 'realized';
 
-const props = defineProps({
-  trade: { required: true, type: Object as () => Trade },
-  mode: {
-    required: false,
-    default: 'default',
-    type: String as PropType<modes>,
+const props = withDefaults(
+  defineProps<{
+    trade: Trade;
+    mode?: modes;
+  }>(),
+  {
+    mode: 'default',
   },
-});
+);
 
 const modeDescs: { [key in modes]: string } = {
   default: 'Current profit',
@@ -61,4 +52,11 @@ const profitDesc = computed((): string => {
 });
 </script>
 
-<style scoped></style>
+<template>
+  <ProfitPill
+    :profit-ratio="profitRatio"
+    :profit-abs="profitAbs"
+    :profit-desc="profitDesc"
+    :stake-currency="trade.quote_currency || 'USDT'"
+  />
+</template>

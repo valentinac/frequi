@@ -1,13 +1,9 @@
+<script setup lang="ts">
+defineProps<{ hint: string }>();
+</script>
+
 <template>
   <div :title="hint">
     <i-mdi-information-outline />
   </div>
 </template>
-
-<script setup lang="ts">
-defineProps({
-  hint: { type: String, required: true },
-});
-</script>
-
-<style lang="scss" scoped></style>

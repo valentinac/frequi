@@ -1,100 +1,20 @@
-<template>
-  <div>
-    <form ref="formRef" novalidate @submit.stop.prevent="handleSubmit" @reset="handleReset">
-      <b-form-group label="机器人名" label-for="name-input">
-        <b-form-input
-          id="name-input"
-          v-model="auth.botName"
-          placeholder="bot name"
-          @keydown.enter="handleOk"
-        ></b-form-input>
-      </b-form-group>
-      <b-form-group
-        :state="urlState"
-        label="API地址"
-        label-for="url-input"
-        invalid-feedback="API Url required"
-      >
-        <b-form-input
-          id="url-input"
-          v-model="auth.url"
-          required
-          trim
-          :state="urlState"
-          @keydown.enter="handleOk"
-        ></b-form-input>
-        <b-alert
-          v-if="urlDuplicate"
-          class="mt-2 p-1 alert-wrap"
-          :model-value="true"
-          variant="warning"
-        >
-          此URL已经被其他机器人使用.
-        </b-alert>
-      </b-form-group>
-      <b-form-group
-        :state="nameState"
-        label="用户名"
-        label-for="username-input"
-        invalid-feedback="用户名密码不能为空."
-      >
-        <b-form-input
-          id="username-input"
-          v-model="auth.username"
-          required
-          placeholder="FaiTrader"
-          :state="nameState"
-          @keydown.enter="handleOk"
-        ></b-form-input>
-      </b-form-group>
-      <b-form-group
-        label="密码"
-        label-for="password-input"
-        invalid-feedback="无效密码"
-        :state="pwdState"
-      >
-        <b-form-input
-          id="password-input"
-          v-model="auth.password"
-          required
-          type="password"
-          :state="pwdState"
-          @keydown.enter="handleOk"
-        ></b-form-input>
-      </b-form-group>
-      <div>
-        <b-alert v-if="errorMessage" class="alert-wrap" :model-value="true" variant="warning">
-          {{ errorMessage }}
-          <br />
-          <span v-if="errorMessageCORS"
-            >请检查你的机器人的CORS（跨域引用）配置:
-            <a href="https://www.faitrader.io/en/latest/rest-api/#cors"
-              >FaiTrader文档</a
-            ></span
-          >
-        </b-alert>
-      </div>
-      <div v-if="inModal === false" class="float-end">
-        <b-button class="me-2" type="reset" variant="danger">Reset</b-button>
-        <b-button type="submit" variant="primary">Submit</b-button>
-      </div>
-    </form>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { useUserService } from '@/shared/userService';
-import { AuthPayload, AuthStorageWithBotId } from '@/types';
+import type { AuthPayload, AuthStorageWithBotId } from '@/types';
 
-import { useBotStore } from '@/stores/ftbotwrapper';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 
-const props = defineProps({
-  inModal: { default: false, type: Boolean },
-  existingAuth: { default: null, required: false, type: Object as () => AuthStorageWithBotId },
-});
-const emit = defineEmits(['loginResult']);
+const props = withDefaults(
+  defineProps<{
+    inModal?: boolean;
+    existingAuth?: AuthStorageWithBotId;
+  }>(),
+  {
+    inModal: false,
+    existingAuth: undefined,
+  },
+);
+const emit = defineEmits<{ loginResult: [value: boolean] }>();
 
 const defaultURL = window.location.origin || 'http://localhost:3000';
 
@@ -116,24 +36,24 @@ const auth = ref<AuthPayload>({
   password: '',
 });
 
-const emitLoginResult = (value: boolean) => {
+function emitLoginResult(value: boolean) {
   emit('loginResult', value);
-};
+}
 
 const urlDuplicate = computed<boolean>(() => {
   const bots = Object.values(botStore.availableBots).find((bot) => bot.botUrl === auth.value.url);
   return !botEdit.value && bots !== undefined;
 });
 
-const checkFormValidity = () => {
+function checkFormValidity() {
   const valid = formRef.value?.checkValidity();
   nameState.value = valid || auth.value.username !== '';
   pwdState.value = valid || auth.value.password !== '';
   urlState.value = valid || auth.value.url !== '';
   return valid;
-};
+}
 
-const resetLogin = () => {
+function resetLogin() {
   auth.value.botName = '';
   auth.value.url = defaultURL;
   auth.value.username = '';
@@ -143,13 +63,14 @@ const resetLogin = () => {
   urlState.value = undefined;
   errorMessage.value = '';
   botEdit.value = false;
-};
+}
 
-const handleReset = (evt) => {
+function handleReset(evt) {
   evt.preventDefault();
   resetLogin();
-};
-const handleSubmit = async () => {
+}
+
+async function handleSubmit() {
   // Exit when the form isn't valid
   if (!checkFormValidity()) {
     return;
@@ -157,9 +78,10 @@ const handleSubmit = async () => {
   errorMessage.value = '';
   // Push the name to submitted names
   try {
-    const botId = botEdit.value ? props.existingAuth.botId : botStore.nextBotId;
-    const userService = useUserService(botId);
-    await userService.login(auth.value);
+    const botId =
+      botEdit.value && props.existingAuth ? props.existingAuth.botId : botStore.nextBotId;
+    const { login } = useLoginInfo(botId);
+    await login(auth.value);
     if (botEdit.value) {
       // Bot editing ...
       botStore.botStores[botId].isBotLoggedIn = true;
@@ -200,12 +122,10 @@ const handleSubmit = async () => {
     if (axios.isAxiosError(error) && error.response && error.response.status === 401) {
       nameState.value = false;
       pwdState.value = false;
-      errorMessage.value = 'Connected to bot, however Login failed, Username or Password wrong.';
+      errorMessage.value = '已连接到机器人, 但登录失败, 用户名或密码错误.';
     } else {
       urlState.value = false;
-      errorMessage.value = `Login failed.
-Please verify that the bot is running, the Bot API is enabled and the URL is reachable.
-You can verify this by navigating to ${auth.value.url}/api/v1/ping to make sure the bot API is reachable`;
+      errorMessage.value = `登录失败. 请检查机器人是否在运行, 机器人API是否可用可被访问. 你可以使用以下链接: ${auth.value.url}/api/v1/ping 去确认机器人API是否可用`;
       if (auth.value.url !== window.location.origin) {
         errorMessageCORS.value = true;
       }
@@ -213,13 +133,14 @@ You can verify this by navigating to ${auth.value.url}/api/v1/ping to make sure 
     console.error(errorMessage.value);
     emitLoginResult(false);
   }
-};
+}
 
-const handleOk = (evt) => {
+function handleOk(evt) {
   evt.preventDefault();
   handleSubmit();
-};
-const reset = () => {
+}
+
+function reset() {
   resetLogin();
   console.log('reset ', props.existingAuth);
   if (props.existingAuth) {
@@ -228,16 +149,96 @@ const reset = () => {
     auth.value.url = props.existingAuth.apiUrl;
     auth.value.username = props.existingAuth.username ?? '';
   }
-};
+}
 
 defineExpose({
-  handleSubmit,
   reset,
+});
+
+onMounted(() => {
+  reset();
 });
 </script>
 
-<style scoped lang="scss">
-.alert-wrap {
-  white-space: pre-wrap;
-}
-</style>
+<template>
+  <form ref="formRef" novalidate @submit.stop.prevent="handleSubmit" @reset="handleReset">
+    <div class="mb-4">
+      <label for="name-input" class="block text-sm font-medium">机器人名</label>
+      <InputText
+        id="name-input"
+        v-model="auth.botName"
+        placeholder="Bot Name"
+        class="mt-1 block w-full"
+        @keydown.enter="handleOk"
+      />
+    </div>
+    <div class="mb-4">
+      <label for="url-input" class="block text-sm font-medium">API Url</label>
+      <InputText
+        id="url-input"
+        v-model="auth.url"
+        required
+        trim
+        :invalid="urlState === false"
+        class="mt-1 block w-full"
+        @keydown.enter="handleOk"
+      />
+      <span v-if="urlState === false" class="mt-2 text-sm text-red-500">必须填写 API URL</span>
+      <Message v-if="urlDuplicate" class="mt-2 text-sm" severity="warn">
+        This URL is already in use by another bot.
+      </Message>
+    </div>
+    <div class="mb-4">
+      <label for="username-input" class="block text-sm font-medium">用户名</label>
+      <InputText
+        id="username-input"
+        v-model="auth.username"
+        required
+        placeholder="FaiQuants"
+        :invalid="nameState === false"
+        class="mt-1 block w-full"
+        @keydown.enter="handleOk"
+      />
+      <span v-if="nameState === false" class="mt-2 text-sm text-red-500">
+        用户名密码不能为空.
+      </span>
+    </div>
+    <div class="mb-4">
+      <label for="password-input" class="block text-sm font-medium">密码</label>
+      <InputText
+        id="password-input"
+        v-model="auth.password"
+        required
+        type="password"
+        :invalid="pwdState === false"
+        class="mt-1 block w-full"
+        @keydown.enter="handleOk"
+      />
+      <span v-if="pwdState === false" class="mt-2 text-sm text-red-500"> 无效密码 </span>
+    </div>
+    <div>
+      <Message v-if="errorMessage" class="mt-2 text-sm whitespace-pre-line" severity="warn">
+        {{ errorMessage }}
+        <br />
+        <span v-if="errorMessageCORS">
+          请检查你的机器人的CORS（跨域引用）配置，参考FaiQuants文档
+        </span>
+      </Message>
+    </div>
+    <div class="flex justify-end gap-2 mt-4">
+      <Button label="重置" severity="danger" type="reset" />
+      <Button
+        v-if="inModal"
+        label="取消"
+        severity="secondary"
+        type="button"
+        @click="emitLoginResult(true)"
+      />
+      <Button label="提交" severity="primary" type="submit">
+        <template #icon>
+          <i-mdi-login />
+        </template>
+      </Button>
+    </div>
+  </form>
+</template>

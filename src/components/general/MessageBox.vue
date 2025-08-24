@@ -1,18 +1,3 @@
-<template>
-  <b-modal
-    id="MsgBoxModal"
-    ref="removeTradeModal"
-    v-model="showRef"
-    :title="title"
-    @ok="msgBoxOK"
-    @cancel="showRef = false"
-    @keyup.esc="showRef = false"
-    @keyup.enter="msgBoxOK"
-  >
-    {{ message }}
-  </b-modal>
-</template>
-
 <script setup lang="ts">
 export interface MsgBoxObject {
   title: string;
@@ -31,14 +16,28 @@ const msgBoxOK = () => {
   showRef.value = false;
 };
 
-const show = (msg: MsgBoxObject) => {
+function show(msg: MsgBoxObject) {
   title.value = msg.title;
   message.value = msg.message;
   showRef.value = true;
   accept.value = msg.accept;
-};
+}
 
 defineExpose({ show });
 </script>
 
-<style scoped></style>
+<template>
+  <Dialog id="MsgBoxModal" ref="removeTradeModal" v-model:visible="showRef" modal :header="title">
+    {{ message }}
+    <template #footer>
+      <Button
+        class="min-w-30"
+        label="Cancel"
+        variant="outlined"
+        severity="secondary"
+        @click="showRef = false"
+      />
+      <Button class="min-w-30" label="Ok" severity="primary" autofocus @click="msgBoxOK" />
+    </template>
+  </Dialog>
+</template>

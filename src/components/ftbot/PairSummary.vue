@@ -1,46 +1,5 @@
-<template>
-  <div>
-    <b-form-group
-      label-for="trade-filter"
-      class="mb-2 ms-2"
-      :class="{
-        'me-4': backtestMode,
-        'me-2': !backtestMode,
-      }"
-    >
-      <b-form-input id="trade-filter" v-model="filterText" type="text" placeholder="Filter" />
-    </b-form-group>
-    <b-list-group>
-      <b-list-group-item
-        v-for="comb in combinedPairList"
-        :key="comb.pair"
-        button
-        class="d-flex justify-content-between align-items-center py-1"
-        :active="comb.pair === botStore.activeBot.selectedPair"
-        :title="`${comb.pair} - ${comb.tradeCount} trades`"
-        @click="botStore.activeBot.selectedPair = comb.pair"
-      >
-        <div>
-          {{ comb.pair }}
-          <span v-if="comb.locks" :title="comb.lockReason"> <i-mdi-lock /> </span>
-        </div>
-
-        <TradeProfit v-if="comb.trade && !backtestMode" :trade="comb.trade" />
-        <ProfitPill
-          v-if="backtestMode && comb.tradeCount > 0"
-          :profit-ratio="comb.profit"
-          :stake-currency="botStore.activeBot.stakeCurrency"
-        />
-      </b-list-group-item>
-    </b-list-group>
-  </div>
-</template>
-
 <script setup lang="ts">
-import { formatPercent, timestampms } from '@/shared/formatters';
-import { Lock, Trade } from '@/types';
-
-import { useBotStore } from '@/stores/ftbotwrapper';
+import type { Lock, Trade } from '@/types';
 
 interface CombinedPairList {
   pair: string;
@@ -52,17 +11,26 @@ interface CombinedPairList {
   profitAbs: number;
   tradeCount: number;
 }
-const filterText = ref('');
 
-const props = defineProps({
-  // TOOD: Should be string list
-  pairlist: { required: true, type: Array as () => string[] },
-  currentLocks: { required: false, type: Array as () => Lock[], default: () => [] },
-  trades: { required: true, type: Array as () => Trade[] },
-  sortMethod: { default: 'normal', type: String },
-  backtestMode: { required: false, default: false, type: Boolean },
-});
+const props = withDefaults(
+  defineProps<{
+    pairlist: string[];
+    currentLocks?: Lock[];
+    trades: Trade[];
+    sortMethod?: string;
+    backtestMode?: boolean;
+    startingBalance?: number;
+  }>(),
+  {
+    currentLocks: () => [],
+    sortMethod: 'normal',
+    backtestMode: false,
+    startingBalance: 0,
+  },
+);
 const botStore = useBotStore();
+
+const filterText = ref('');
 const combinedPairList = computed(() => {
   const comb: CombinedPairList[] = [];
 
@@ -76,7 +44,7 @@ const combinedPairList = computed(() => {
     allLocks.sort((a, b) => (a.lock_end_timestamp > b.lock_end_timestamp ? -1 : 1));
     if (allLocks.length > 0) {
       [locks] = allLocks;
-      lockReason = `${timestampms(locks.lock_end_timestamp)} - ${locks.reason}`;
+      lockReason = `${timestampms(locks.lock_end_timestamp)} - ${locks.side} - ${locks.reason}`;
     }
     let profitString = '';
     let profit = 0;
@@ -85,6 +53,9 @@ const combinedPairList = computed(() => {
       profit += trade.profit_ratio;
       profitAbs += trade.profit_abs ?? 0;
     });
+    if (props.sortMethod == 'profit' && props.startingBalance) {
+      profit = profitAbs / props.startingBalance;
+    }
     const tradeCount = trades.length;
     const trade = tradeCount ? trades[0] : undefined;
     if (trades.length > 0) {
@@ -131,6 +102,55 @@ const combinedPairList = computed(() => {
   return comb;
 });
 </script>
+
+<template>
+  <div>
+    <div
+      label-for="trade-filter"
+      class="mb-2"
+      :class="{
+        'me-4': backtestMode,
+        'me-2': !backtestMode,
+      }"
+    >
+      <InputText
+        id="trade-filter"
+        v-model="filterText"
+        type="text"
+        placeholder="Filter"
+        class="w-full"
+      />
+    </div>
+    <ul
+      class="divide-y divide-surface-300 dark:divide-surface-700 divide-solid border-x border-y rounded-sm border-surface-300 dark:border-surface-700"
+    >
+      <li
+        v-for="comb in combinedPairList"
+        :key="comb.pair"
+        button
+        class="flex cursor-pointer last:rounded-b justify-between items-center px-1 py-1.5"
+        :class="{
+          'bg-primary dark:border-primary text-primary-contrast':
+            comb.pair === botStore.activeBot.selectedPair,
+        }"
+        :title="`${formatPriceCurrency(comb.profitAbs, botStore.activeBot.stakeCurrency, botStore.activeBot.stakeCurrencyDecimals)} - ${comb.pair} - ${comb.tradeCount} trades`"
+        @click="botStore.activeBot.selectedPair = comb.pair"
+      >
+        <div>
+          {{ comb.pair }}
+          <span v-if="comb.locks" :title="comb.lockReason"> <i-mdi-lock /> </span>
+        </div>
+
+        <TradeProfit v-if="comb.trade && !backtestMode" :trade="comb.trade" />
+        <ProfitPill
+          v-if="backtestMode && comb.tradeCount > 0"
+          :profit-ratio="comb.profit"
+          :stake-currency="botStore.activeBot.stakeCurrency"
+        />
+      </li>
+    </ul>
+  </div>
+</template>
 
 <style scoped>
 .list-group {

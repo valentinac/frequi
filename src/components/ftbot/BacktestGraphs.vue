@@ -1,26 +1,41 @@
 <script setup lang="ts">
-import { ClosedTrade } from '@/types';
+import type { ClosedTrade } from '@/types';
+import TradeDurationChart from '../charts/TradeDurationChart.vue';
 
-defineProps({
-  trades: { required: true, type: Array as () => ClosedTrade[] },
-});
+defineProps<{
+  trades: ClosedTrade[];
+}>();
+
+const botStore = useBotStore();
+
+const { state: marketChangeData } = useAsyncState(
+  () => botStore.activeBot.getBacktestMarketChange(),
+  null,
+);
 </script>
 <template>
-  <div class="text-center flex-fill mt-2 d-flex flex-column">
-    <TradesLogChart :trades="trades" class="trades-log" />
-    <CumProfitChart :trades="trades" class="cum-profit" :show-title="true" />
-    <hr />
-    <ProfitDistributionChart class="mt-3" :trades="trades" :show-title="true" />
+  <div class="text-center flex-fill flex flex-col h-full gap-1">
+    <TradesLogChart :trades="trades" class="flex-grow-1 chart-equal-height" />
+    <TradeDurationChart
+      class="flex-grow-1 chart-equal-height"
+      :trades="trades"
+      :show-title="true"
+    />
+    <CumProfitChart :trades="trades" class="flex-grow-1 chart-equal-height" :show-title="true" />
+    <MarketChangeChart
+      v-if="marketChangeData"
+      :market-change-data="marketChangeData"
+      class="flex-grow-1 chart-equal-height"
+    />
+    <ProfitDistributionChart
+      class="flex-grow-1 chart-equal-height"
+      :trades="trades"
+      :show-title="true"
+    />
   </div>
 </template>
-
-<style lang="scss" scoped>
-.trades-log {
-  height: 350px !important;
-  max-height: 350px;
-}
-.cum-profit {
-  height: 350px !important;
-  max-height: 350px;
+<style scoped lang="css">
+.chart-equal-height {
+  min-height: 300px !important;
 }
 </style>

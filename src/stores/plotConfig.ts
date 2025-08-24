@@ -1,6 +1,5 @@
-import { deepClone } from '@/shared/deepClone';
-import { EMPTY_PLOTCONFIG, PlotConfig, PlotConfigStorage } from '@/types';
-import { defineStore } from 'pinia';
+import type { PlotConfig, PlotConfigStorage } from '@/types';
+import { EMPTY_PLOTCONFIG } from '@/types';
 
 const FT_PLOT_CONFIG_KEY = 'ftPlotConfig';
 
@@ -38,18 +37,8 @@ export const usePlotConfigStore = defineStore('plotConfig', {
       (state.isEditing
         ? state.editablePlotConfig
         : state.customPlotConfigs[state.plotConfigName]) || deepClone(EMPTY_PLOTCONFIG),
-    // plotConfig: (state) => state.customPlotConfig[state.plotConfigName] || { ...EMPTY_PLOTCONFIG },
     usedColumns() {
-      const cols: string[] = [];
-      for (const key in this.plotConfig.main_plot) {
-        cols.push(key);
-      }
-      for (const key in this.plotConfig.subplots) {
-        for (const subkey in this.plotConfig.subplots[key]) {
-          cols.push(subkey);
-        }
-      }
-      return cols;
+      return plotConfigColumns(this.plotConfig as unknown as PlotConfig);
     },
   },
   actions: {
@@ -79,7 +68,7 @@ export const usePlotConfigStore = defineStore('plotConfig', {
       if (plotConfigName) {
         this.plotConfigName = plotConfigName;
       }
-      console.log('plotConfigChanged', this.plotConfigName);
+
       if (this.isEditing) {
         this.editablePlotConfig = deepClone(this.customPlotConfigs[this.plotConfigName]);
       }
@@ -92,8 +81,9 @@ export const usePlotConfigStore = defineStore('plotConfig', {
   },
   persist: {
     key: FT_PLOT_CONFIG_KEY,
-    paths: ['plotConfigName', 'customPlotConfigs'],
-    afterRestore: (context) => {
+    pick: ['plotConfigName', 'customPlotConfigs'],
+    afterHydrate: (context) => {
+      // Ensure default plot config exists
       if (Object.keys(context.store.customPlotConfigs).length === 0) {
         console.log('Initialized plotconfig');
         context.store.customPlotConfigs = { default: deepClone(EMPTY_PLOTCONFIG) };
@@ -101,3 +91,7 @@ export const usePlotConfigStore = defineStore('plotConfig', {
     },
   },
 });
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(usePlotConfigStore, import.meta.hot));
+}

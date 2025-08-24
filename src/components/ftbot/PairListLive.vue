@@ -1,159 +1,173 @@
-<template>
-  <div>
-    <div>
-      <h3>白名单配置</h3>
-
-      <div v-if="botStore.activeBot.pairlistMethods.length" class="list wide">
-        <div
-          v-for="(method, key) in botStore.activeBot.pairlistMethods"
-          :key="key"
-          class="pair white align-middle border border-secondary"
-        >
-          {{ method }}
-        </div>
-      </div>
-    </div>
-    <!-- Show Whitelist -->
-    <h3 :title="`${botStore.activeBot.whitelist.length} pairs`">白名单</h3>
-    <div v-if="botStore.activeBot.whitelist.length" class="list">
-      <div
-        v-for="(pair, key) in botStore.activeBot.whitelist"
-        :key="key"
-        class="pair white align-middle border border-secondary text-small"
-      >
-        {{ pair }}
-      </div>
-    </div>
-    <p v-else>列表不可用. 请登录并确保服务器正在运行.</p>
-    <hr />
-
-    <!-- Blacklsit -->
-    <div>
-      <label
-        class="me-auto h3"
-        title="黑名单 - 选择(然后单击“-”)以删除对"
-        >黑名单</label
-      >
-      <div class="float-end d-flex d-flex-columns pe-1">
-        <b-button
-          id="blacklist-add-btn"
-          class="me-1"
-          :class="botStore.activeBot.botApiVersion >= 1.12 ? 'col-6' : ''"
-          size="sm"
-          ><i-mdi-plus-box-outline />
-        </b-button>
-        <b-button
-          v-if="botStore.activeBot.botApiVersion >= 1.12"
-          size="sm"
-          class="col-6"
-          title="选择币种，将币种从黑名单中删除."
-          :disabled="blacklistSelect.length === 0"
-          @click="deletePairs"
-        >
-          <i-mdi-delete />
-        </b-button>
-      </div>
-      <BPopover
-        title="添加黑名单"
-        target="blacklist-add-btn"
-        triggers="click"
-        teleport-to="body"
-        :show="blackListShow"
-      >
-        <form ref="form" @submit.prevent="addBlacklistPair">
-          <div>
-            <b-form-group label-cols="2" label="币种" label-for="pair-input">
-              <b-form-input
-                id="pair-input"
-                v-model="newblacklistpair"
-                required
-                autofocus
-              ></b-form-input>
-            </b-form-group>
-            <b-button id="blacklist-submit" class="float-end mb-2" size="sm" type="submit">
-              Add
-            </b-button>
-          </div>
-        </form>
-      </BPopover>
-    </div>
-    <div v-if="botStore.activeBot.blacklist.length" class="list">
-      <div
-        v-for="(pair, key) in botStore.activeBot.blacklist"
-        :key="key"
-        class="pair black border border-secondary"
-        :class="blacklistSelect.indexOf(key) > -1 ? 'active' : ''"
-        @click="blacklistSelectClick(key)"
-      >
-        <span class="check"><i-mdi-check-circle /></span>{{ pair }}
-      </div>
-    </div>
-    <p v-else>黑名单不可用. 请登录并确保服务器正在运行.</p>
-    <!-- Pagination -->
-    <!-- TODO Add pagination support -->
-  </div>
-</template>
-
 <script setup lang="ts">
-import { useBotStore } from '@/stores/ftbotwrapper';
+import type Popover from 'primevue/popover';
 
 const newblacklistpair = ref('');
 const blackListShow = ref(false);
+const blacklistAddPopover = ref<InstanceType<typeof Popover>>();
 const blacklistSelect = ref<number[]>([]);
 const botStore = useBotStore();
 
-const initBlacklist = () => {
+function initBlacklist() {
   if (botStore.activeBot.whitelist.length === 0) {
     botStore.activeBot.getWhitelist();
   }
   if (botStore.activeBot.blacklist.length === 0) {
     botStore.activeBot.getBlacklist();
   }
-};
+}
 
-const addBlacklistPair = () => {
+function addBlacklistPair() {
   if (newblacklistpair.value) {
     blackListShow.value = false;
+    blacklistAddPopover.value?.hide();
 
     botStore.activeBot.addBlacklist({ blacklist: [newblacklistpair.value] });
     newblacklistpair.value = '';
   }
-};
+}
 
-const blacklistSelectClick = (key) => {
+function showPopover(event: MouseEvent) {
+  blacklistAddPopover.value?.show(event);
+}
+
+function blacklistSelectClick(key: number) {
   const index = blacklistSelect.value.indexOf(key);
   if (index > -1) {
     blacklistSelect.value.splice(index, 1);
   } else {
     blacklistSelect.value.push(key);
   }
-};
+}
 
-const deletePairs = () => {
+function deletePairs() {
   if (blacklistSelect.value.length === 0) {
-    console.log('nothing to delete');
+    console.log('啥也没删');
     return;
   }
   // const pairlist = blacklistSelect.value;
   const pairlist = botStore.activeBot.blacklist.filter(
     (value, index) => blacklistSelect.value.indexOf(index) > -1,
   );
-  console.log('Deleting pairs: ', pairlist);
+  console.log('正删除的币种: ', pairlist);
   botStore.activeBot.deleteBlacklist(pairlist);
   blacklistSelect.value = [];
-};
+}
 onMounted(() => {
   initBlacklist();
 });
 </script>
 
-<style scoped lang="scss">
+<template>
+  <div>
+    <div>
+      <h3 class="text-xl">白名单配置</h3>
+
+      <ul v-if="botStore.activeBot.pairlistMethods.length" class="list wide">
+        <li
+          v-for="(method, key) in botStore.activeBot.pairlistMethods"
+          :key="key"
+          class="pair bg-white text-black align-middle border border-secondary"
+        >
+          {{ method }}
+        </li>
+      </ul>
+    </div>
+    <!-- Show Whitelist -->
+    <h3 class="text-lg font-bold" :title="`${botStore.activeBot.whitelist.length} pairs`">
+      Whitelist
+    </h3>
+    <ul v-if="botStore.activeBot.whitelist.length" class="list">
+      <li
+        v-for="(pair, key) in botStore.activeBot.whitelist"
+        :key="key"
+        class="pair bg-white text-black align-middle border border-secondary"
+      >
+        {{ pair }}
+      </li>
+    </ul>
+    <p v-else>列表不可用. 请登录并确保服务器正在运行.</p>
+    <Divider />
+
+    <!-- Blacklsit -->
+    <div>
+      <div class="flex flex-row justify-center mb-1">
+        <label
+          class="text-lg font-bold mb-2 w-full"
+          title="黑名单 - 选择(然后单击'-')以删除币种"
+        >
+          Blacklist
+        </label>
+        <div class="flex flex-cols items-center gap-1 pe-1">
+          <Button
+            ref="blacklist-add-btn"
+            severity="secondary"
+            :class="botStore.activeBot.botFeatures.botBlacklistModify ? 'col-6' : ''"
+            size="small"
+            @click="showPopover"
+          >
+            <template #icon>
+              <i-mdi-plus-box-outline />
+            </template>
+          </Button>
+          <Button
+            v-if="botStore.activeBot.botFeatures.botBlacklistModify"
+            size="small"
+            severity="secondary"
+            title="选择将要从黑名单中删除的币种."
+            :disabled="blacklistSelect.length === 0"
+            @click="deletePairs"
+          >
+            <template #icon>
+              <i-mdi-delete />
+            </template>
+          </Button>
+        </div>
+      </div>
+      <Popover ref="blacklistAddPopover" class="p-1">
+        <form ref="form" @submit.prevent="addBlacklistPair">
+          <div class="space-y-1">
+            <h4 class="font-bold mb-2">添加币种到黑名单</h4>
+            <div class="space-x-2">
+              <label for="pair-input">币种</label>
+              <InputText id="pair-input" v-model="newblacklistpair" required autofocus></InputText>
+            </div>
+            <Button
+              id="blacklist-submit"
+              class="float-end mb-2"
+              size="small"
+              severity="primary"
+              type="submit"
+            >
+              添加
+            </Button>
+          </div>
+        </form>
+      </Popover>
+    </div>
+    <ul v-if="botStore.activeBot.blacklist.length" class="list">
+      <li
+        v-for="(pair, key) in botStore.activeBot.blacklist"
+        :key="key"
+        class="pair bg-black text-white text-ellipsis overflow-hidden"
+        :title="pair"
+        :class="blacklistSelect.indexOf(key) > -1 ? 'active' : ''"
+        @click="blacklistSelectClick(key)"
+      >
+        <span class="check"><i-mdi-check-circle /></span>{{ pair }}
+      </li>
+    </ul>
+    <p v-else>黑名单不可用. 请登录并确保服务器正在运行.</p>
+  </div>
+</template>
+
+<style scoped>
+@reference '../../styles/tailwind.css';
+
 .check {
-  // Hidden checkbox on blacklist selection
-  // background: white;
+  /* Hidden checkbox on blacklist selection */
   color: #41b883;
   opacity: 0;
-  // border-radius: 50%;
+  /* border-radius: 50%; */
   z-index: 5;
   width: 1.3em;
   height: 1.3em;
@@ -178,20 +192,6 @@ onMounted(() => {
 }
 
 .pair {
-  background: #41b883;
-  padding: 0.5rem;
-  border-radius: 5px;
-  cursor: pointer;
-  position: relative;
-}
-
-.white {
-  background: white;
-  color: black;
-}
-
-.black {
-  background: black;
-  color: white;
+  @apply p-2 border rounded cursor-pointer relative border-surface-500;
 }
 </style>

@@ -1,5 +1,4 @@
-import { UserService } from '@/shared/userService';
-import {
+import type {
   BalanceInterface,
   BotDescriptor,
   BotDescriptors,
@@ -12,13 +11,16 @@ import {
   MultiDeletePayload,
   MultiForcesellPayload,
   MultiReloadTradePayload,
-  ProfitInterface,
+  ProfitStats,
   Trade,
-  TimeSummaryOptions,
 } from '@/types';
-import { defineStore } from 'pinia';
+import { TimeSummaryOptions } from '@/types';
 import { createBotSubStore } from './ftbot';
 const AUTH_SELECTED_BOT = 'ftSelectedBot';
+
+// Import axios for type inference only
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import axios from 'axios';
 
 export type BotSubStore = ReturnType<typeof createBotSubStore>;
 
@@ -41,10 +43,14 @@ export const useBotStore = defineStore('ftbot-wrapper', {
   getters: {
     hasBots: (state) => Object.keys(state.availableBots).length > 0,
     botCount: (state) => Object.keys(state.availableBots).length,
+    availableBotsSorted: (state) => {
+      return Object.values(state.availableBots).sort((a, b) => (a.sortId ?? 0) - (b.sortId ?? 0));
+    },
     allBotStores: (state) => Object.values(state.botStores),
     activeBot: (state) => state.botStores[state.selectedBot] as BotSubStore,
     activeBotorUndefined: (state) => state.botStores[state.selectedBot] as BotSubStore | undefined,
     canRunBacktest: (state) => state.botStores[state.selectedBot]?.canRunBacktest ?? false,
+    isWebserverMode: (state) => state.botStores[state.selectedBot]?.isWebserverMode ?? false,
     selectedBotObj: (state) => state.availableBots[state.selectedBot],
     nextBotId: (state) => {
       let botCount = Object.keys(state.availableBots).length;
@@ -54,8 +60,8 @@ export const useBotStore = defineStore('ftbot-wrapper', {
       }
       return `ftbot.${botCount}`;
     },
-    allProfit: (state): Record<string, ProfitInterface> => {
-      const result: Record<string, ProfitInterface> = {};
+    allProfit: (state): Record<string, ProfitStats> => {
+      const result: Record<string, ProfitStats> = {};
       Object.entries(state.botStores).forEach(([k, botStore]) => {
         result[k] = botStore.profit;
       });
@@ -145,6 +151,50 @@ export const useBotStore = defineStore('ftbot-wrapper', {
         data: Object.values(resp).sort((a, b) => (a.date > b.date ? 1 : -1)),
       };
       return dailyReturn;
+    },
+    allWeeklyStatsSelectedBots: (state): TimeSummaryReturnValue => {
+      const resp: Record<string, TimeSummaryRecord> = {};
+      Object.entries(state.botStores).forEach(([, botStore]) => {
+        if (botStore.isSelected) {
+          botStore.weeklyStats?.data?.forEach((d) => {
+            if (!resp[d.date]) {
+              resp[d.date] = { ...d };
+            } else {
+              resp[d.date].abs_profit += d.abs_profit;
+              resp[d.date].fiat_value += d.fiat_value;
+              resp[d.date].trade_count += d.trade_count;
+            }
+          });
+        }
+      });
+
+      return {
+        stake_currency: 'USDT',
+        fiat_display_currency: 'USD',
+        data: Object.values(resp).sort((a, b) => (a.date > b.date ? 1 : -1)),
+      };
+    },
+    allMonthlyStatsSelectedBots: (state): TimeSummaryReturnValue => {
+      const resp: Record<string, TimeSummaryRecord> = {};
+      Object.entries(state.botStores).forEach(([, botStore]) => {
+        if (botStore.isSelected) {
+          botStore.monthlyStats?.data?.forEach((d) => {
+            if (!resp[d.date]) {
+              resp[d.date] = { ...d };
+            } else {
+              resp[d.date].abs_profit += d.abs_profit;
+              resp[d.date].fiat_value += d.fiat_value;
+              resp[d.date].trade_count += d.trade_count;
+            }
+          });
+        }
+      });
+
+      return {
+        stake_currency: 'USDT',
+        fiat_display_currency: 'USD',
+        data: Object.values(resp).sort((a, b) => (a.date > b.date ? 1 : -1)),
+      };
     },
   },
   actions: {
@@ -326,18 +376,29 @@ export const useBotStore = defineStore('ftbot-wrapper', {
     async reloadTradeMulti(deletePayload: MultiReloadTradePayload) {
       return this.botStores[deletePayload.botId].reloadTrade(deletePayload.tradeid);
     },
+    async allGetTimeSummary(period: TimeSummaryOptions, payload?: TimeSummaryPayload) {
+      const updates: Promise<TimeSummaryReturnValue>[] = [];
+
+      this.allBotStores.forEach((bot) => {
+        if (bot.isBotOnline && bot.isSelected) {
+          updates.push(bot.getTimeSummary(period, payload));
+        }
+      });
+      await Promise.all(updates);
+    },
   },
 });
 
 export function initBots() {
-  UserService.migrateLogin();
-
   const botStore = useBotStore();
-  // This might need to be moved to the parent (?)
-  Object.entries(UserService.getAvailableBots()).forEach(([, v]) => {
+  Object.entries(availableBots.value).forEach(([, v]) => {
     botStore.addBot(v);
   });
   botStore.selectFirstBot();
   botStore.startRefresh();
   botStore.allRefreshFull();
+}
+
+if (import.meta.hot) {
+  import.meta.hot.accept(acceptHMRUpdate(useBotStore, import.meta.hot));
 }

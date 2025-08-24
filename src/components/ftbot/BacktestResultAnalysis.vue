@@ -1,27 +1,48 @@
+<script setup lang="ts">
+import type { StrategyBacktestResult } from '@/types';
+
+const props = defineProps<{
+  backtestResult: StrategyBacktestResult;
+}>();
+
+const backtestResultStats = computed(() => {
+  const tmp = generateBacktestMetricRows(props.backtestResult);
+  return formatObjectForTable({ value: tmp }, 'metric');
+});
+
+const backtestResultSettings = computed(() => {
+  // Transpose Result into readable format
+  const tmp = generateBacktestSettingRows(props.backtestResult);
+
+  return formatObjectForTable({ value: tmp }, 'setting');
+});
+</script>
+
 <template>
-  <div class="px-0 mw-100">
-    <div class="d-flex justify-content-center">
-      <h3>Backtest-result for {{ backtestResult.strategy_name }}</h3>
+  <div class="px-0 w-full">
+    <div class="flex justify-center">
+      <h3 class="font-bold text-2xl mb-2">
+        Backtest-result for {{ backtestResult.strategy_name }}
+      </h3>
     </div>
 
-    <div class="d-flex flex-column text-start ms-0 me-2 gap-2">
-      <div class="d-flex flex-column flex-xl-row">
-        <div class="px-0 px-xl-0 pe-xl-1 flex-fill">
-          <b-card header="策略配置">
-            <b-table
-              small
-              borderless
-              :items="backtestResultSettings"
-              :fields="backtestsettingFields"
-            >
-            </b-table>
-          </b-card>
+    <div class="flex flex-col text-start ms-0 me-2 gap-2">
+      <div class="flex flex-col xl:flex-row">
+        <div class="px-0 px-xl-0 pe-xl-1 grow">
+          <DraggableContainer header="策略设置">
+            <DataTable size="small" :value="backtestResultSettings">
+              <Column field="setting" header="设置"></Column>
+              <Column field="value" header="值"></Column>
+            </DataTable>
+          </DraggableContainer>
         </div>
-        <div class="px-0 px-xl-0 pt-2 pt-xl-0 ps-xl-1 flex-fill">
-          <b-card header="指标">
-            <b-table small borderless :items="backtestResultStats" :fields="backtestResultFields">
-            </b-table>
-          </b-card>
+        <div class="px-0 xl:px-0 pt-2 xl:pt-0 xl:ps-1 grow">
+          <DraggableContainer header="指标">
+            <DataTable size="small" borderless :value="backtestResultStats">
+              <Column field="metric" header="指标" />
+              <Column field="value" header="值" />
+            </DataTable>
+          </DraggableContainer>
         </div>
       </div>
       <BacktestResultTablePer
@@ -56,53 +77,18 @@
         key-header="Pair"
         :stake-currency-decimals="backtestResult.stake_currency_decimals"
       />
-      <b-card v-if="backtestResult.periodic_breakdown" header="Periodic breakdown">
+      <DraggableContainer v-if="backtestResult.periodic_breakdown" header="Periodic breakdown">
         <BacktestResultPeriodBreakdown :periodic-breakdown="backtestResult.periodic_breakdown">
         </BacktestResultPeriodBreakdown>
-      </b-card>
+      </DraggableContainer>
 
-      <b-card header="Single trades">
+      <DraggableContainer header="Single trades">
         <TradeList
           :trades="backtestResult.trades"
           :show-filter="true"
           :stake-currency="backtestResult.stake_currency"
         />
-      </b-card>
+      </DraggableContainer>
     </div>
   </div>
 </template>
-
-<script setup lang="ts">
-import { StrategyBacktestResult } from '@/types';
-import { formatObjectForTable } from '@/shared/objectToTableItems';
-
-import { generateBacktestMetricRows, generateBacktestSettingRows } from '@/shared/backtestMetrics';
-import { TableField } from 'bootstrap-vue-next';
-
-const props = defineProps({
-  backtestResult: { required: true, type: Object as () => StrategyBacktestResult },
-});
-
-const backtestResultStats = computed(() => {
-  const tmp = generateBacktestMetricRows(props.backtestResult);
-  return formatObjectForTable({ value: tmp }, 'metric');
-});
-
-const backtestResultSettings = computed(() => {
-  // Transpose Result into readable format
-  const tmp = generateBacktestSettingRows(props.backtestResult);
-
-  return formatObjectForTable({ value: tmp }, 'setting');
-});
-const backtestResultFields: TableField[] = [
-  { key: 'metric', label: 'Metric' },
-  { key: 'value', label: 'Value' },
-];
-
-const backtestsettingFields: TableField[] = [
-  { key: 'setting', label: 'Setting' },
-  { key: 'value', label: 'Value' },
-];
-</script>
-
-<style lang="scss" scoped></style>

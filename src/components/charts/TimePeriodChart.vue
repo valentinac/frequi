@@ -1,14 +1,3 @@
-<template>
-  <ECharts
-    v-if="dailyStats.data"
-    ref="dailyChart"
-    :option="dailyChartOptions"
-    :theme="settingsStore.chartTheme"
-    :style="{ height: width * 0.6 + 'px' }"
-    autoresize
-  />
-</template>
-
 <script setup lang="ts">
 import ECharts from 'vue-echarts';
 // import { EChartsOption } from 'echarts';
@@ -22,14 +11,14 @@ import {
   LegendComponent,
   TitleComponent,
   TooltipComponent,
+  TransformComponent,
   VisualMapComponent,
 } from 'echarts/components';
 
-import { TimeSummaryReturnValue } from '@/types';
-import { useSettingsStore } from '@/stores/settings';
-import { EChartsOption } from 'echarts';
-import { useElementSize } from '@vueuse/core';
-import { useColorStore } from '@/stores/colors';
+import { registerTransform } from 'echarts';
+
+import type { TimeSummaryCols, TimeSummaryReturnValue } from '@/types';
+import type { EChartsOption, LinearGradientObject } from 'echarts';
 
 use([
   BarChart,
@@ -41,41 +30,91 @@ use([
   TitleComponent,
   TooltipComponent,
   VisualMapComponent,
+  TransformComponent,
 ]);
 
-// Define Column labels here to avoid typos
-const CHART_ABS_PROFIT = 'Absolute profit';
-const CHART_TRADE_COUNT = 'Trade Count';
+const props = withDefaults(
+  defineProps<{
+    dailyStats: TimeSummaryReturnValue;
+    showTitle?: boolean;
+    profitCol: TimeSummaryCols;
+  }>(),
+  {
+    showTitle: true,
+  },
+);
 
-const props = defineProps({
-  dailyStats: {
-    type: Object as () => TimeSummaryReturnValue,
-    required: true,
-  },
-  showTitle: {
-    type: Boolean,
-    default: true,
-  },
-});
+// Define Column labels here to avoid typos
+const CHART_PROFIT = computed(() =>
+  props.profitCol === 'abs_profit' ? 'Absolute profit' : 'Relative profit',
+);
+const CHART_TRADE_COUNT = 'Trade Count';
 
 const settingsStore = useSettingsStore();
 const colorStore = useColorStore();
 
 const dailyChart = ref(null);
-const { width } = useElementSize(dailyChart);
 
-const absoluteMin = computed(() =>
-  props.dailyStats.data.reduce(
-    (min, p) => (p.abs_profit < min ? p.abs_profit : min),
-    props.dailyStats.data[0]?.abs_profit,
-  ),
+const absoluteMin = computed(
+  () =>
+    props.dailyStats.data.reduce(
+      (min, p) => (p[props.profitCol] < min ? p[props.profitCol] : min),
+      props.dailyStats.data[0]?.[props.profitCol],
+    ) * (props.profitCol === 'rel_profit' ? 100 : 1),
 );
-const absoluteMax = computed(() =>
-  props.dailyStats.data.reduce(
-    (max, p) => (p.abs_profit > max ? p.abs_profit : max),
-    props.dailyStats.data[0]?.abs_profit,
-  ),
+const absoluteMax = computed(
+  () =>
+    props.dailyStats.data.reduce(
+      (max, p) => (p[props.profitCol] > max ? p[props.profitCol] : max),
+      props.dailyStats.data[0]?.[props.profitCol],
+    ) * (props.profitCol === 'rel_profit' ? 100 : 1),
 );
+
+const units = {
+  multiple: {
+    // the tranform code
+    type: 'units:multiple',
+    transform: function (params) {
+      const rawData = params.upstream.cloneRawData();
+      const { dimension, factor } = params.config; // add default case and error management
+      const data = rawData.map((o) => ({ ...o, [dimension]: (o[dimension] * factor).toFixed(2) }));
+      return [
+        {
+          dimensions: params.upstream.cloneAllDimensionInfo(),
+          data,
+        },
+      ];
+    },
+  },
+};
+
+registerTransform(units.multiple);
+
+const colorStops: LinearGradientObject = {
+  type: 'linear',
+  x: 0,
+  y: 0,
+  x2: 1,
+  y2: 0,
+  colorStops: [
+    {
+      offset: 0,
+      color: colorStore.colorProfit, // color at 0%
+    },
+    {
+      offset: 0.5,
+      color: colorStore.colorProfit, // color at 50%
+    },
+    {
+      offset: 0.5,
+      color: colorStore.colorLoss, // color at 50%
+    },
+    {
+      offset: 1,
+      color: colorStore.colorLoss, // color at 100%
+    },
+  ],
+};
 const dailyChartOptions: ComputedRef<EChartsOption> = computed(() => {
   return {
     title: {
@@ -83,10 +122,18 @@ const dailyChartOptions: ComputedRef<EChartsOption> = computed(() => {
       show: props.showTitle,
     },
     backgroundColor: 'rgba(0, 0, 0, 0)',
-    dataset: {
-      dimensions: ['date', 'abs_profit', 'trade_count'],
-      source: props.dailyStats.data,
-    },
+    dataset: [
+      {
+        dimensions: ['date', props.profitCol, 'trade_count'],
+        source: props.dailyStats.data,
+      },
+      {
+        transform: {
+          type: 'units:multiple',
+          config: { dimension: props.profitCol, factor: props.profitCol == 'rel_profit' ? 100 : 1 },
+        },
+      },
+    ],
     tooltip: {
       trigger: 'axis',
       axisPointer: {
@@ -97,7 +144,18 @@ const dailyChartOptions: ComputedRef<EChartsOption> = computed(() => {
       },
     },
     legend: {
-      data: [CHART_ABS_PROFIT, CHART_TRADE_COUNT],
+      data: [
+        {
+          name: CHART_PROFIT.value,
+          lineStyle: {
+            color: colorStops,
+          },
+          itemStyle: {
+            color: colorStops,
+          },
+        },
+        { name: CHART_TRADE_COUNT },
+      ],
       right: '5%',
     },
     xAxis: [
@@ -127,13 +185,18 @@ const dailyChartOptions: ComputedRef<EChartsOption> = computed(() => {
     yAxis: [
       {
         type: 'value',
-        name: CHART_ABS_PROFIT,
+        name: CHART_PROFIT.value,
         splitLine: {
           show: false,
         },
         nameRotate: 90,
         nameLocation: 'middle',
         nameGap: 35,
+        axisLabel: {
+          formatter: (value) => {
+            return props.profitCol === 'rel_profit' ? `${value}%` : `${value}`;
+          },
+        },
       },
       {
         type: 'value',
@@ -143,11 +206,17 @@ const dailyChartOptions: ComputedRef<EChartsOption> = computed(() => {
         nameGap: 30,
       },
     ],
+    grid: {
+      left: '50',
+      right: '45',
+      bottom: '15%',
+    },
     series: [
       {
         type: 'line',
-        name: CHART_ABS_PROFIT,
+        name: CHART_PROFIT.value,
         // Color is induced by visualMap
+        datasetIndex: 1,
       },
       {
         type: 'bar',
@@ -156,14 +225,27 @@ const dailyChartOptions: ComputedRef<EChartsOption> = computed(() => {
           color: 'rgba(150,150,150,0.3)',
         },
         yAxisIndex: 1,
+        datasetIndex: 1,
       },
     ],
   };
 });
 </script>
 
-<style lang="scss" scoped>
+<template>
+  <ECharts
+    v-if="dailyStats.data"
+    ref="dailyChart"
+    :option="dailyChartOptions"
+    :theme="settingsStore.chartTheme"
+    :style="{ height: '100%' }"
+    autoresize
+  />
+</template>
+
+<style lang="css" scoped>
 .echarts {
   min-height: 240px;
+  height: 100%;
 }
 </style>

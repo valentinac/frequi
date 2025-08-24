@@ -4,7 +4,7 @@
     <p class="h4">Ahhhhhhhh! 访问页面似乎不存在.</p>
     <p>
       不必担心, 您可以退回到
-      <router-link to="/"> <span>首页</span> </router-link>.
+      <RouterLink to="/"> <span>首页</span> </RouterLink>.
     </p>
   </div>
 </template>
